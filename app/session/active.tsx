@@ -1,0 +1,640 @@
+import { EXERCISES, Exercise } from '@/data/exercises';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
+
+type Set = {
+  id: string;
+  weight: string;
+  reps: string;
+  completed: boolean;
+};
+
+type SessionExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  sets: Set[];
+};
+
+type WorkoutSession = {
+  id: string;
+  date: string;
+  exercises: { exerciseId: string; sets: { reps: number; weight: number; completed: boolean }[] }[];
+};
+
+export default function ActiveSessionScreen() {
+  const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string }>();
+  const db = useSQLiteContext();
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
+  const [restTimerSeconds, setRestTimerSeconds] = useState(0);
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerComplete, setTimerComplete] = useState(false);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch workout history and find most recent sets for an exercise
+  const getMostRecentSetsForExercise = async (exerciseId: string): Promise<Set[]> => {
+    try {
+      // First, find the most recent workout_id that contained this exercise_id
+      const mostRecentWorkout = await db.getFirstAsync<{ workout_id: string }>(
+        `SELECT s.workout_id as workout_id
+         FROM sets s
+         INNER JOIN workouts w ON s.workout_id = w.id
+         WHERE s.exercise_id = ?
+         ORDER BY w.date DESC
+         LIMIT 1`,
+        [exerciseId]
+      );
+
+      if (!mostRecentWorkout) {
+        return [];
+      }
+
+      // Then, get all sets for that workout_id and exercise_id
+      const sets = await db.getAllAsync<{
+        id: string;
+        weight: number | null;
+        reps: number | null;
+        completed: number;
+      }>(
+        `SELECT id, weight, reps, completed 
+         FROM sets 
+         WHERE workout_id = ? AND exercise_id = ?
+         ORDER BY timestamp ASC`,
+        [mostRecentWorkout.workout_id, exerciseId]
+      );
+
+      // Map to Set type (convert completed 0/1 to boolean)
+      return sets.map((set, index) => ({
+        id: Date.now().toString() + index + Math.random(),
+        weight: set.weight?.toString() || '',
+        reps: set.reps?.toString() || '',
+        completed: false, // Always start with false for new session
+      }));
+    } catch (error) {
+      console.error('Error fetching workout history:', error);
+    }
+    return [];
+  };
+
+  // Create exercise with history pre-fill
+  const createExerciseWithHistory = async (exercise: Exercise): Promise<SessionExercise> => {
+    const historySets = await getMostRecentSetsForExercise(exercise.id);
+    
+    // If history exists, use it; otherwise use default (1 empty set)
+    const sets: Set[] = historySets.length > 0 
+      ? historySets
+      : [
+          {
+            id: Date.now().toString() + Math.random(),
+            weight: '',
+            reps: '',
+            completed: false,
+          },
+        ];
+
+    return {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      sets,
+    };
+  };
+
+  // Pre-fill exercises from template if template data exists
+  useEffect(() => {
+    const loadTemplateExercises = async () => {
+      if (params.exerciseIds) {
+        const exerciseIds = params.exerciseIds.split(',');
+        const templateExercises: SessionExercise[] = [];
+
+        for (const exerciseId of exerciseIds) {
+          const exercise = EXERCISES.find((ex) => ex.id === exerciseId);
+          if (exercise) {
+            const exerciseWithHistory = await createExerciseWithHistory(exercise);
+            templateExercises.push(exerciseWithHistory);
+          }
+        }
+
+        if (templateExercises.length > 0) {
+          setSessionExercises(templateExercises);
+        }
+      }
+    };
+
+    loadTemplateExercises();
+  }, [params.exerciseIds]);
+
+  const handleAddExercise = () => {
+    setShowExerciseModal(true);
+  };
+
+  const handleSelectExercise = async (exercise: Exercise) => {
+    const newExercise = await createExerciseWithHistory(exercise);
+    setSessionExercises([...sessionExercises, newExercise]);
+    setShowExerciseModal(false);
+  };
+
+  const handleAddSet = (exerciseId: string) => {
+    setSessionExercises(
+      sessionExercises.map((ex) =>
+        ex.exerciseId === exerciseId
+          ? {
+              ...ex,
+              sets: [
+                ...ex.sets,
+                {
+                  id: Date.now().toString(),
+                  weight: '',
+                  reps: '',
+                  completed: false,
+                },
+              ],
+            }
+          : ex
+      )
+    );
+  };
+
+  const startRestTimer = () => {
+    if (restTimerSeconds > 0) {
+      // Timer already running, don't restart
+      return;
+    }
+    setRestTimerSeconds(90);
+    setShowTimer(true);
+    setTimerComplete(false);
+  };
+
+  const stopRestTimer = () => {
+    setRestTimerSeconds(0);
+    setShowTimer(false);
+    setTimerComplete(false);
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (restTimerSeconds > 0 && showTimer) {
+      timerIntervalRef.current = setInterval(() => {
+        setRestTimerSeconds((prev) => {
+          if (prev <= 1) {
+            // Timer reached 0
+            setTimerComplete(true);
+            Vibration.vibrate([0, 500, 200, 500]); // Vibrate pattern
+            setTimeout(() => {
+              setShowTimer(false);
+              setTimerComplete(false);
+            }, 2000); // Show "GO!" for 2 seconds
+            if (timerIntervalRef.current) {
+              clearInterval(timerIntervalRef.current);
+              timerIntervalRef.current = null;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [restTimerSeconds, showTimer]);
+
+  const handleSwapExercise = (currentExerciseId: string) => {
+    const currentExercise = EXERCISES.find((ex) => ex.id === currentExerciseId);
+    if (!currentExercise || !currentExercise.alternatives || currentExercise.alternatives.length === 0) {
+      return;
+    }
+
+    const alternativeExercises = currentExercise.alternatives
+      .map((altId) => EXERCISES.find((ex) => ex.id === altId))
+      .filter((ex): ex is Exercise => ex !== undefined);
+
+    if (alternativeExercises.length === 0) {
+      return;
+    }
+
+    Alert.alert(
+      'Swap Exercise',
+      `Choose an alternative for ${currentExercise.name}:`,
+      [
+        ...alternativeExercises.map((alt) => ({
+          text: alt.name,
+          onPress: () => {
+            setSessionExercises(
+              sessionExercises.map((ex) =>
+                ex.exerciseId === currentExerciseId
+                  ? {
+                      ...ex,
+                      exerciseId: alt.id,
+                      exerciseName: alt.name,
+                    }
+                  : ex
+              )
+            );
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleUpdateSet = (exerciseId: string, setId: string, field: 'weight' | 'reps' | 'completed', value: string | boolean) => {
+    const wasCompleted = sessionExercises
+      .find((ex) => ex.exerciseId === exerciseId)
+      ?.sets.find((set) => set.id === setId)?.completed;
+
+    setSessionExercises(
+      sessionExercises.map((ex) =>
+        ex.exerciseId === exerciseId
+          ? {
+              ...ex,
+              sets: ex.sets.map((set) => (set.id === setId ? { ...set, [field]: value } : set)),
+            }
+          : ex
+      )
+    );
+
+    // Start timer if a set is marked as completed and timer is not already running
+    if (field === 'completed' && value === true && !wasCompleted && restTimerSeconds === 0) {
+      startRestTimer();
+    }
+  };
+
+  const handleFinish = async () => {
+    if (sessionExercises.length === 0) {
+      Alert.alert('No Exercises', 'Please add at least one exercise before finishing.');
+      return;
+    }
+
+    try {
+      const workoutId = Date.now().toString();
+      const workoutDate = new Date().toISOString();
+
+      // Use transaction to ensure data integrity
+      await db.withTransactionAsync(async () => {
+        // Insert workout
+        await db.runAsync(
+          `INSERT INTO workouts (id, date, name, duration_seconds) 
+           VALUES (?, ?, ?, ?)`,
+          [workoutId, workoutDate, null, null]
+        );
+
+        // Iterate through sessionExercises and their sets
+        for (const exercise of sessionExercises) {
+          for (const set of exercise.sets) {
+            const setId = Date.now().toString() + Math.random();
+            const weight = set.weight ? parseFloat(set.weight) : null;
+            const reps = set.reps ? parseFloat(set.reps) : null;
+            const completed = set.completed ? 1 : 0;
+            const timestamp = new Date().toISOString();
+
+            // Insert set
+            await db.runAsync(
+              `INSERT INTO sets (id, workout_id, exercise_id, weight, reps, completed, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [setId, workoutId, exercise.exerciseId, weight, reps, completed, timestamp]
+            );
+          }
+        }
+      });
+
+      // Show success alert
+      Alert.alert('Workout Saved!', 'Your workout has been saved successfully.', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
+      console.error('Error saving workout:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    Alert.alert('Cancel Workout', 'Are you sure you want to cancel?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes',
+        style: 'destructive',
+        onPress: () => router.back(),
+      },
+    ]);
+  };
+
+  const renderExerciseItem = ({ item }: { item: Exercise }) => {
+    return (
+      <Pressable
+        onPress={() => handleSelectExercise(item)}
+        style={{
+          backgroundColor: '#1e1e1e',
+          padding: 16,
+          marginHorizontal: 16,
+          marginVertical: 8,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#2a2a2a',
+        }}>
+        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
+        <Text style={{ color: '#E5E5E5', fontSize: 14, marginTop: 4 }}>{item.muscleGroup}</Text>
+      </Pressable>
+    );
+  };
+
+  const renderSetRow = (exerciseId: string, set: Set, index: number) => {
+    return (
+      <View
+        key={set.id}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#2a2a2a',
+        }}>
+        <Text style={{ color: 'white', width: 40, fontSize: 14 }}>{index + 1}</Text>
+        <TextInput
+          style={{
+            color: 'white',
+            backgroundColor: '#333',
+            padding: 10,
+            borderRadius: 6,
+            width: 80,
+            marginRight: 8,
+            fontSize: 14,
+          }}
+          placeholder="lbs"
+          placeholderTextColor="#999"
+          keyboardType="numeric"
+          value={set.weight}
+          onChangeText={(text) => handleUpdateSet(exerciseId, set.id, 'weight', text)}
+        />
+        <TextInput
+          style={{
+            color: 'white',
+            backgroundColor: '#333',
+            padding: 10,
+            borderRadius: 6,
+            width: 80,
+            marginRight: 8,
+            fontSize: 14,
+          }}
+          placeholder="Reps"
+          placeholderTextColor="#999"
+          keyboardType="numeric"
+          value={set.reps}
+          onChangeText={(text) => handleUpdateSet(exerciseId, set.id, 'reps', text)}
+        />
+        <TouchableOpacity
+          onPress={() => handleUpdateSet(exerciseId, set.id, 'completed', !set.completed)}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            borderWidth: 2,
+            borderColor: set.completed ? '#10b981' : '#666',
+            backgroundColor: set.completed ? '#10b981' : 'transparent',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          {set.completed && <Text style={{ color: 'white', fontSize: 14 }}>✓</Text>}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderSessionExercise = (exercise: SessionExercise) => {
+    const exerciseData = EXERCISES.find((ex) => ex.id === exercise.exerciseId);
+    const hasAlternatives = exerciseData?.alternatives && exerciseData.alternatives.length > 0;
+
+    return (
+      <View
+        key={exercise.exerciseId}
+        style={{
+          backgroundColor: '#1e1e1e',
+          marginHorizontal: 16,
+          marginVertical: 12,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#2a2a2a',
+          overflow: 'hidden',
+        }}>
+        <View
+          style={{
+            padding: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: '#2a2a2a',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', flex: 1 }}>
+            {exercise.exerciseName}
+          </Text>
+          {hasAlternatives && (
+            <Pressable
+              onPress={() => handleSwapExercise(exercise.exerciseId)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: '#10b981',
+              }}>
+              <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600' }}>Swap</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Header Row */}
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: '#252525',
+            borderBottomWidth: 1,
+            borderBottomColor: '#2a2a2a',
+          }}>
+          <Text style={{ color: '#E5E5E5', width: 40, fontSize: 12, fontWeight: '600' }}>Set</Text>
+          <Text style={{ color: '#E5E5E5', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>lbs</Text>
+          <Text style={{ color: '#E5E5E5', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>Reps</Text>
+          <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600' }}>Done</Text>
+        </View>
+
+        {/* Set Rows */}
+        {exercise.sets.map((set, index) => renderSetRow(exercise.exerciseId, set, index))}
+
+        {/* Add Set Button */}
+        <Pressable
+          onPress={() => handleAddSet(exercise.exerciseId)}
+          style={{
+            padding: 12,
+            alignItems: 'center',
+            borderTopWidth: 1,
+            borderTopColor: '#2a2a2a',
+          }}>
+          <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>+ Add Set</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  return (
+    <View style={{ backgroundColor: '#121212', flex: 1 }}>
+      {/* Header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#2a2a2a',
+        }}>
+        <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Duration: 00:00</Text>
+        <Pressable
+          onPress={handleFinish}
+          style={{
+            backgroundColor: '#10b981',
+            paddingHorizontal: 20,
+            paddingVertical: 8,
+            borderRadius: 8,
+          }}>
+          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Finish</Text>
+        </Pressable>
+      </View>
+
+      {/* Body */}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 16 }}>
+        {sessionExercises.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, minHeight: 400 }}>
+            <Pressable
+              onPress={handleAddExercise}
+              style={{
+                backgroundColor: '#1e1e1e',
+                paddingHorizontal: 32,
+                paddingVertical: 16,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: '#10b981',
+                borderStyle: 'dashed',
+              }}>
+              <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Add Exercise</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            {sessionExercises.map((exercise) => renderSessionExercise(exercise))}
+            <Pressable
+              onPress={handleAddExercise}
+              style={{
+                backgroundColor: '#1e1e1e',
+                paddingHorizontal: 32,
+                paddingVertical: 16,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: '#10b981',
+                borderStyle: 'dashed',
+                marginHorizontal: 16,
+                marginTop: 8,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Add Exercise</Text>
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
+
+      {/* Rest Timer Overlay */}
+      {showTimer && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 80,
+            left: 16,
+            right: 16,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            borderRadius: 12,
+            padding: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: '#10b981',
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <Text style={{ color: '#10b981', fontSize: 18, fontWeight: '600', marginRight: 12 }}>
+              {timerComplete ? 'GO!' : `Rest: ${String(Math.floor(restTimerSeconds / 60)).padStart(2, '0')}:${String(restTimerSeconds % 60).padStart(2, '0')}`}
+            </Text>
+          </View>
+          <Pressable
+            onPress={stopRestTimer}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}>
+            <Text style={{ color: '#E5E5E5', fontSize: 16, fontWeight: '600' }}>✕</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Footer */}
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingBottom: 32,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: '#2a2a2a',
+        }}>
+        <Pressable onPress={handleCancel} style={{ alignItems: 'center' }}>
+          <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600' }}>Cancel Workout</Text>
+        </Pressable>
+      </View>
+
+      {/* Exercise Picker Modal */}
+      <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#2a2a2a',
+              }}>
+              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Select Exercise</Text>
+              <Pressable onPress={() => setShowExerciseModal(false)}>
+                <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>Close</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={EXERCISES}
+              renderItem={renderExerciseItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingVertical: 8 }}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+

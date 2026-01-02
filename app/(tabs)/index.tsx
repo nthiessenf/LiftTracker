@@ -1,31 +1,538 @@
-import { StyleSheet } from 'react-native';
+import WeeklyGoalRing from '@/components/WeeklyGoalRing';
+import { WORKOUT_TEMPLATES } from '@/data/templates';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+type WorkoutSession = {
+  id: string;
+  date: string;
+  exercises: { exerciseId: string; sets: { reps: number; weight: number; completed: boolean }[] }[];
+};
 
-export default function TabOneScreen() {
+type DayStatus = {
+  date: Date;
+  hasWorkout: boolean;
+  isToday: boolean;
+  isPast: boolean;
+  isFuture: boolean;
+};
+
+export default function DashboardScreen() {
+  const db = useSQLiteContext();
+  const [weeklyProgress, setWeeklyProgress] = useState<DayStatus[]>([]);
+  const [workoutCount, setWorkoutCount] = useState(0);
+  const [nextWorkout, setNextWorkout] = useState<string | null>(null);
+  const [weeklyGoal, setWeeklyGoal] = useState(3);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
+
+  const getCurrentWeekDays = (): Date[] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get the day of the week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    const dayOfWeek = today.getDay();
+    
+    // Calculate days to subtract to get to Monday
+    // If today is Sunday (0), go back 6 days to get Monday
+    // If today is Monday (1), go back 0 days
+    // If today is Tuesday (2), go back 1 day, etc.
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    // Get Monday of the current week
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToMonday);
+    
+    // Generate array of 7 days starting from Monday
+    const weekDays: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      weekDays.push(date);
+    }
+    
+    return weekDays;
+  };
+
+  const isSameDate = (date1: Date, date2: Date): boolean => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
+  const getWeekKey = (date: Date): string => {
+    // Get Monday of the week for this date
+    const d = new Date(date);
+    const day = d.getDay();
+    const daysToMonday = day === 0 ? 6 : day - 1; // Days to subtract to get to Monday
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - daysToMonday);
+    monday.setHours(0, 0, 0, 0);
+    
+    // Get ISO week number (simplified - week starting from Jan 1)
+    const startOfYear = new Date(monday.getFullYear(), 0, 1);
+    const daysSinceStart = Math.floor((monday.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.floor(daysSinceStart / 7) + 1;
+    
+    // Format as YYYY-Www
+    const year = monday.getFullYear();
+    const week = weekNumber.toString().padStart(2, '0');
+    return `${year}-W${week}`;
+  };
+
+  const calculateStreak = (dates: string[]): number => {
+    if (dates.length === 0) return 0;
+
+    // Convert all dates to week keys
+    const weekSet = new Set<string>();
+    dates.forEach((dateStr) => {
+      const date = new Date(dateStr);
+      const weekKey = getWeekKey(date);
+      weekSet.add(weekKey);
+    });
+
+    // Get current week
+    const today = new Date();
+    const currentWeekKey = getWeekKey(today);
+
+    // Check if current week has workouts
+    let currentDate = new Date(today);
+    let weekToCheck = currentWeekKey;
+    let found = weekSet.has(weekToCheck);
+
+    // If current week doesn't have workouts, check last week
+    if (!found) {
+      currentDate.setDate(currentDate.getDate() - 7);
+      weekToCheck = getWeekKey(currentDate);
+      found = weekSet.has(weekToCheck);
+    }
+
+    // Count consecutive weeks backwards
+    let streak = 0;
+    while (found) {
+      streak++;
+      // Get previous week by subtracting 7 days
+      currentDate.setDate(currentDate.getDate() - 7);
+      weekToCheck = getWeekKey(currentDate);
+      found = weekSet.has(weekToCheck);
+    }
+
+    return streak;
+  };
+
+  const loadWeeklyProgress = useCallback(async () => {
+    try {
+      // Query 1: Get all workout dates
+      const workouts = await db.getAllAsync<{ date: string }>('SELECT date FROM workouts');
+
+      // Get current week days (Monday to Sunday)
+      const weekDays = getCurrentWeekDays();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Map each day to its status
+      const days: DayStatus[] = weekDays.map((date) => {
+        const dateCopy = new Date(date);
+        dateCopy.setHours(0, 0, 0, 0);
+
+        // Check if any workout exists for this date
+        const hasWorkout = workouts.some((workout) => {
+          const workoutDate = new Date(workout.date);
+          workoutDate.setHours(0, 0, 0, 0);
+          return isSameDate(workoutDate, dateCopy);
+        });
+
+        const isToday = isSameDate(dateCopy, today);
+        const isPast = dateCopy < today;
+        const isFuture = dateCopy > today;
+
+        return {
+          date: dateCopy,
+          hasWorkout,
+          isToday,
+          isPast,
+          isFuture,
+        };
+      });
+
+      const count = days.filter((day) => day.hasWorkout).length;
+      setWeeklyProgress(days);
+      setWorkoutCount(count);
+
+      // Calculate streak
+      const workoutDates = workouts.map((w) => w.date);
+      const streak = calculateStreak(workoutDates);
+      setCurrentStreak(streak);
+
+      // Determine next workout
+      // Query 2: Get the most recent workout ID
+      const lastWorkout = await db.getFirstAsync<{ id: string }>(
+        'SELECT id FROM workouts ORDER BY date DESC LIMIT 1'
+      );
+
+      if (lastWorkout) {
+        // Query 3: Get distinct exercise IDs from the last workout
+        const lastExerciseIds = await db.getAllAsync<{ exercise_id: string }>(
+          'SELECT DISTINCT exercise_id FROM sets WHERE workout_id = ?',
+          [lastWorkout.id]
+        );
+
+        // Convert to sorted array of exercise IDs
+        const exerciseIds = lastExerciseIds.map((row) => row.exercise_id).sort();
+        
+        const workoutAIds = WORKOUT_TEMPLATES.find((t) => t.id === 'workout-a')?.exerciseIds.sort() || [];
+        const workoutBIds = WORKOUT_TEMPLATES.find((t) => t.id === 'workout-b')?.exerciseIds.sort() || [];
+
+        // Check if last workout matches Workout A or B pattern
+        const wasWorkoutA = workoutAIds.every((id: string) => exerciseIds.includes(id)) && 
+                            exerciseIds.length === workoutAIds.length;
+        const wasWorkoutB = workoutBIds.every((id: string) => exerciseIds.includes(id)) && 
+                            exerciseIds.length === workoutBIds.length;
+
+        if (wasWorkoutA) {
+          setNextWorkout('workout-b');
+        } else if (wasWorkoutB) {
+          setNextWorkout('workout-a');
+        } else {
+          // Default to Workout A if pattern doesn't match
+          setNextWorkout('workout-a');
+        }
+      } else {
+        // No history, default to Workout A
+        setNextWorkout('workout-a');
+      }
+    } catch (error) {
+      console.error('Error loading weekly progress:', error);
+      setWeeklyProgress([]);
+      setWorkoutCount(0);
+      setNextWorkout('workout-a');
+    }
+  }, [db]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadWeeklyProgress();
+    }, [loadWeeklyProgress])
+  );
+
+  const handleStartWorkout = () => {
+    router.push('/session/active');
+  };
+
+  const handleStartNextWorkout = () => {
+    if (nextWorkout) {
+      const template = WORKOUT_TEMPLATES.find((t) => t.id === nextWorkout);
+      if (template) {
+        router.push({
+          pathname: '/session/active',
+          params: {
+            templateId: template.id,
+            exerciseIds: template.exerciseIds.join(','),
+          },
+        });
+      }
+    }
+  };
+
+  const getDayLabel = (date: Date): string => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[date.getDay()];
+  };
+
+  // Load saved goal on mount
+  useEffect(() => {
+    const loadSavedGoal = async () => {
+      try {
+        const savedGoal = await AsyncStorage.getItem('weekly_workout_goal');
+        if (savedGoal) {
+          const goal = parseInt(savedGoal, 10);
+          if (!isNaN(goal) && goal > 0) {
+            setWeeklyGoal(goal);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved goal:', error);
+      }
+    };
+
+    loadSavedGoal();
+  }, []);
+
+  const handleEditGoal = () => {
+    // Try Alert.prompt (iOS)
+    if (Alert.prompt) {
+      Alert.prompt(
+        'Edit Weekly Goal',
+        'Enter your new weekly workout goal:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: (text: string | undefined) => {
+              if (text) {
+                const newGoal = parseInt(text, 10);
+                if (!isNaN(newGoal) && newGoal > 0) {
+                  setWeeklyGoal(newGoal);
+                  AsyncStorage.setItem('weekly_workout_goal', newGoal.toString());
+                } else {
+                  Alert.alert('Invalid Input', 'Please enter a valid number greater than 0.');
+                }
+              }
+            },
+          },
+        ],
+        'plain-text',
+        weeklyGoal.toString()
+      );
+    } else {
+      // Fallback for Android - show modal
+      setGoalInput(weeklyGoal.toString());
+      setShowGoalModal(true);
+    }
+  };
+
+  const handleSaveGoal = () => {
+    const newGoal = parseInt(goalInput, 10);
+    if (!isNaN(newGoal) && newGoal > 0) {
+      setWeeklyGoal(newGoal);
+      AsyncStorage.setItem('weekly_workout_goal', newGoal.toString());
+      setShowGoalModal(false);
+      setGoalInput('');
+    } else {
+      Alert.alert('Invalid Input', 'Please enter a valid number greater than 0.');
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+    <View style={{ backgroundColor: '#000000', flex: 1 }}>
+      {/* Goal Edit Modal (Android fallback) */}
+      <Modal
+        visible={showGoalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGoalModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <View
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 24,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              minWidth: 280,
+            }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 16 }}>
+              Edit Weekly Goal
+            </Text>
+            <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 12 }}>
+              Enter your new weekly workout goal:
+            </Text>
+            <TextInput
+              style={{
+                color: 'white',
+                backgroundColor: '#333',
+                padding: 12,
+                borderRadius: 8,
+                fontSize: 16,
+                borderWidth: 1,
+                borderColor: '#2a2a2a',
+                marginBottom: 16,
+              }}
+              placeholder="Enter goal"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={goalInput}
+              onChangeText={setGoalInput}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+              <Pressable
+                onPress={() => {
+                  setShowGoalModal(false);
+                  setGoalInput('');
+                }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  marginRight: 12,
+                }}>
+                <Text style={{ color: '#E5E5E5', fontSize: 16 }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveGoal}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  backgroundColor: '#10b981',
+                  borderRadius: 8,
+                }}>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          alignItems: 'center',
+          paddingTop: 40,
+          paddingBottom: 20,
+        }}>
+        <Text style={{ color: 'white', fontSize: 48, fontWeight: 'bold', marginBottom: 32 }}>LiftTrack</Text>
+
+        {/* Weekly Goal Ring */}
+        <WeeklyGoalRing
+          currentCount={workoutCount}
+          goal={weeklyGoal}
+          streak={currentStreak}
+          onEditGoal={handleEditGoal}
+        />
+
+        {/* Weekly Progress Card */}
+        <View
+          style={{
+            backgroundColor: '#1e1e1e',
+            padding: 20,
+            borderRadius: 12,
+            marginBottom: 32,
+            marginHorizontal: 32,
+            borderWidth: 1,
+            borderColor: '#2a2a2a',
+            minWidth: 320,
+          }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 16, textAlign: 'center' }}>
+            Weekly Progress
+          </Text>
+
+          {/* 7 Circles Row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}>
+            {weeklyProgress.map((day, index) => {
+              // Determine dot style based on status
+              let borderColor = '#666';
+              let backgroundColor = 'transparent';
+              let borderWidth = 2;
+
+              if (day.hasWorkout) {
+                // Green dot: workout exists
+                borderColor = '#10b981';
+                backgroundColor = '#10b981';
+              } else if (day.isPast) {
+                // Gray dot: missed workout (past date, no workout)
+                borderColor = '#666';
+                backgroundColor = '#333';
+              } else if (day.isFuture) {
+                // Empty/outline dot: future date
+                borderColor = '#444';
+                backgroundColor = 'transparent';
+              }
+
+              // Highlight current day with a thicker border or different style
+              if (day.isToday) {
+                borderWidth = 3;
+                if (!day.hasWorkout) {
+                  borderColor = '#10b981';
+                }
+              }
+
+              return (
+                <View key={index} style={{ alignItems: 'center' }}>
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      borderWidth: borderWidth,
+                      borderColor: borderColor,
+                      backgroundColor: backgroundColor,
+                      marginBottom: 4,
+                    }}
+                  />
+                  <Text style={{ color: day.isToday ? '#10b981' : '#E5E5E5', fontSize: 10, fontWeight: day.isToday ? '600' : '400' }}>
+                    {getDayLabel(day.date)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Summary Text */}
+          <Text style={{ color: '#E5E5E5', fontSize: 14, textAlign: 'center' }}>
+            {workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'} this week
+          </Text>
+        </View>
+
+        {/* Up Next Card */}
+        {nextWorkout && (
+          <View
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 20,
+              borderRadius: 12,
+              marginBottom: 32,
+              marginHorizontal: 32,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              minWidth: 320,
+            }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
+              Up Next: {WORKOUT_TEMPLATES.find((t) => t.id === nextWorkout)?.name || 'Workout'}
+            </Text>
+            <Pressable
+              onPress={handleStartNextWorkout}
+              style={{
+                backgroundColor: '#10b981',
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Start Now</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Start Button at Bottom */}
+      <View
+        style={{
+          paddingHorizontal: 32,
+          paddingBottom: 32,
+          paddingTop: 16,
+          borderTopWidth: 1,
+          borderTopColor: '#2a2a2a',
+        }}>
+        <Pressable
+          onPress={handleStartWorkout}
+          style={{
+            backgroundColor: '#10b981',
+            paddingHorizontal: 32,
+            paddingVertical: 16,
+            borderRadius: 12,
+            alignItems: 'center',
+          }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Start Empty Workout</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-});

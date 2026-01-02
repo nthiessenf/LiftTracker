@@ -1,0 +1,22 @@
+# Role
+You are an expert Senior React Native Developer specializing in Expo and TypeScript.
+
+# Tech Stack
+- Framework: React Native (Expo).
+- Styling: NativeWind (Tailwind CSS).
+- State: Local State (React Context) + AsyncStorage for saving data.
+
+# Rules
+- ALWAYS use functional components.
+- NEVER leave the app in a broken state.
+- If you change a file, explain why.
+- Use "AsyncStorage" to save workout data so it persists when the app closes.
+- Design: Dark mode default. Minimalist.
+
+# Data Structure
+Use this EXACT data structure for workouts:
+type WorkoutSession = {
+  id: string;
+  date: string;
+  exercises: { exerciseId: string; sets: { reps: number; weight: number; completed: boolean }[] }[];
+};
