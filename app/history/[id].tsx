@@ -1,8 +1,9 @@
+import { deleteWorkout, updateWorkoutDetails } from '@/data/database/db';
 import { EXERCISES } from '@/data/exercises';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 type ExerciseGroup = {
   exerciseId: string;
@@ -23,6 +24,9 @@ export default function WorkoutDetailScreen() {
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exerciseGroups, setExerciseGroups] = useState<ExerciseGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDate, setEditDate] = useState('');
 
   useEffect(() => {
     const loadWorkout = async () => {
@@ -41,6 +45,13 @@ export default function WorkoutDetailScreen() {
         }
 
         setWorkout(workoutData);
+        setEditName(workoutData.name || '');
+        // Format date for input (YYYY-MM-DD)
+        const dateObj = new Date(workoutData.date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        setEditDate(`${year}-${month}-${day}`);
 
         // Query 2: Get all sets for this workout
         const sets = await db.getAllAsync<{
@@ -118,6 +129,52 @@ export default function WorkoutDetailScreen() {
     return `${dayName}, ${month} ${day}, ${year}`;
   };
 
+  const handleSave = async () => {
+    if (!workout || !id) return;
+
+    try {
+      // Convert date to ISO string format
+      const dateObj = new Date(editDate);
+      const isoDate = dateObj.toISOString();
+
+      await updateWorkoutDetails(db, id, editName || null, isoDate);
+      
+      // Update local state
+      setWorkout({
+        ...workout,
+        name: editName || null,
+        date: isoDate,
+      });
+      
+      setIsEditing(false);
+      Alert.alert('Success', 'Workout updated successfully!');
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      Alert.alert('Error', 'Failed to update workout. Please try again.');
+    }
+  };
+
+  const handleDelete = () => {
+    if (!id) return;
+
+    Alert.alert('Delete Workout?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteWorkout(db, id);
+            router.back();
+          } catch (error) {
+            console.error('Error deleting workout:', error);
+            Alert.alert('Error', 'Failed to delete workout. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
   if (loading) {
     return (
       <View style={{ backgroundColor: '#121212', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -136,7 +193,26 @@ export default function WorkoutDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: formatDate(workout.date) }} />
+      <Stack.Screen
+        options={{
+          title: formatDate(workout.date),
+          headerRight: () => (
+            <Pressable
+              onPress={() => {
+                if (isEditing) {
+                  handleSave();
+                } else {
+                  setIsEditing(true);
+                }
+              }}
+              style={{ marginRight: 16 }}>
+              <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>
+                {isEditing ? 'Save' : 'Edit'}
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView style={{ backgroundColor: '#121212', flex: 1 }}>
         {/* Workout Summary Card */}
         <View
@@ -150,12 +226,53 @@ export default function WorkoutDetailScreen() {
             borderWidth: 1,
             borderColor: '#2a2a2a',
           }}>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 8 }}>
-            {workout.name || 'Untitled Workout'}
-          </Text>
-          <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 4 }}>
-            {formatDate(workout.date)}
-          </Text>
+          {isEditing ? (
+            <>
+              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 8 }}>Workout Name</Text>
+              <TextInput
+                style={{
+                  color: 'white',
+                  backgroundColor: '#333',
+                  padding: 12,
+                  borderRadius: 8,
+                  fontSize: 16,
+                  borderWidth: 1,
+                  borderColor: '#2a2a2a',
+                  marginBottom: 16,
+                }}
+                placeholder="Enter workout name"
+                placeholderTextColor="#999"
+                value={editName}
+                onChangeText={setEditName}
+              />
+              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 8 }}>Date (YYYY-MM-DD)</Text>
+              <TextInput
+                style={{
+                  color: 'white',
+                  backgroundColor: '#333',
+                  padding: 12,
+                  borderRadius: 8,
+                  fontSize: 16,
+                  borderWidth: 1,
+                  borderColor: '#2a2a2a',
+                  marginBottom: 16,
+                }}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#999"
+                value={editDate}
+                onChangeText={setEditDate}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 8 }}>
+                {workout.name || 'Untitled Workout'}
+              </Text>
+              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 4 }}>
+                {formatDate(workout.date)}
+              </Text>
+            </>
+          )}
           <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>
             Duration: {formatDuration(workout.duration_seconds)}
           </Text>
@@ -203,6 +320,23 @@ export default function WorkoutDetailScreen() {
         {exerciseGroups.length === 0 && (
           <View style={{ padding: 32, alignItems: 'center' }}>
             <Text style={{ color: '#666', fontSize: 14 }}>No exercises recorded for this workout</Text>
+          </View>
+        )}
+
+        {/* Delete Button (only visible when editing) */}
+        {isEditing && (
+          <View style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 32 }}>
+            <Pressable
+              onPress={handleDelete}
+              style={{
+                backgroundColor: '#ef4444',
+                paddingHorizontal: 24,
+                paddingVertical: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Delete Workout</Text>
+            </Pressable>
           </View>
         )}
       </ScrollView>

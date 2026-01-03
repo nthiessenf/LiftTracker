@@ -69,3 +69,31 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   }
 }
 
+export async function updateWorkoutDetails(
+  db: SQLiteDatabase,
+  workoutId: string,
+  name: string | null,
+  date: string
+): Promise<void> {
+  try {
+    await db.runAsync('UPDATE workouts SET name = ?, date = ? WHERE id = ?', [name, date, workoutId]);
+  } catch (error) {
+    console.error('Error updating workout details:', error);
+    throw error;
+  }
+}
+
+export async function deleteWorkout(db: SQLiteDatabase, workoutId: string): Promise<void> {
+  try {
+    await db.withTransactionAsync(async () => {
+      // First, delete all sets for this workout
+      await db.runAsync('DELETE FROM sets WHERE workout_id = ?', [workoutId]);
+      // Second, delete the workout
+      await db.runAsync('DELETE FROM workouts WHERE id = ?', [workoutId]);
+    });
+  } catch (error) {
+    console.error('Error deleting workout:', error);
+    throw error;
+  }
+}
+
