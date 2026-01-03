@@ -76,7 +76,11 @@ export async function updateWorkoutDetails(
   date: string
 ): Promise<void> {
   try {
+    // Save the date string directly without any conversion
+    // date should be in YYYY-MM-DD format
+    console.log('updateWorkoutDetails: Saving date string directly:', date);
     await db.runAsync('UPDATE workouts SET name = ?, date = ? WHERE id = ?', [name, date, workoutId]);
+    console.log('updateWorkoutDetails: Database update completed');
   } catch (error) {
     console.error('Error updating workout details:', error);
     throw error;
@@ -93,6 +97,37 @@ export async function deleteWorkout(db: SQLiteDatabase, workoutId: string): Prom
     });
   } catch (error) {
     console.error('Error deleting workout:', error);
+    throw error;
+  }
+}
+
+export async function updateSet(
+  db: SQLiteDatabase,
+  setId: string,
+  weight: number | null,
+  reps: number | null,
+  completed: number
+): Promise<void> {
+  console.log('DB: Attempting to update set', setId, 'Weight:', weight, 'Reps:', reps, 'Completed:', completed);
+  try {
+    const sql = 'UPDATE sets SET weight = ?, reps = ?, completed = ? WHERE id = ?';
+    const params = [weight, reps, completed, setId];
+    console.log('DB: SQL Query:', sql);
+    console.log('DB: Parameters:', params);
+    
+    const result = await db.runAsync(sql, params);
+    console.log('DB: Update SUCCESS for set', setId, 'Result:', result);
+  } catch (error) {
+    console.error('DB: Update FAILED for set', setId, 'Error:', error);
+    throw error;
+  }
+}
+
+export async function deleteSet(db: SQLiteDatabase, setId: string): Promise<void> {
+  try {
+    await db.runAsync('DELETE FROM sets WHERE id = ?', [setId]);
+  } catch (error) {
+    console.error('Error deleting set:', error);
     throw error;
   }
 }

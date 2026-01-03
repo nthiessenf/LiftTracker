@@ -1,14 +1,22 @@
-import { deleteWorkout, updateWorkoutDetails } from '@/data/database/db';
+import { deleteSet, deleteWorkout, updateSet, updateWorkoutDetails } from '@/data/database/db';
 import { EXERCISES } from '@/data/exercises';
+import { MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+type SetData = {
+  id: string;
+  weight: number | null;
+  reps: number | null;
+  completed: number;
+};
 
 type ExerciseGroup = {
   exerciseId: string;
   exerciseName: string;
-  sets: { weight: number | null; reps: number | null; completed: number }[];
+  sets: SetData[];
 };
 
 type Workout = {
@@ -28,76 +36,80 @@ export default function WorkoutDetailScreen() {
   const [editName, setEditName] = useState('');
   const [editDate, setEditDate] = useState('');
 
-  useEffect(() => {
-    const loadWorkout = async () => {
-      if (!id) return;
+  const loadWorkout = useCallback(async () => {
+    if (!id) return;
 
-      try {
-        // Query 1: Get workout details
-        const workoutData = await db.getFirstAsync<Workout>(
-          'SELECT * FROM workouts WHERE id = ?',
-          [id]
-        );
+    try {
+      // Query 1: Get workout details
+      const workoutData = await db.getFirstAsync<Workout>(
+        'SELECT * FROM workouts WHERE id = ?',
+        [id]
+      );
 
-        if (!workoutData) {
-          setLoading(false);
-          return;
-        }
-
-        setWorkout(workoutData);
-        setEditName(workoutData.name || '');
-        // Format date for input (YYYY-MM-DD)
-        const dateObj = new Date(workoutData.date);
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        setEditDate(`${year}-${month}-${day}`);
-
-        // Query 2: Get all sets for this workout
-        const sets = await db.getAllAsync<{
-          id: string;
-          workout_id: string;
-          exercise_id: string;
-          weight: number | null;
-          reps: number | null;
-          completed: number;
-          timestamp: string | null;
-        }>('SELECT * FROM sets WHERE workout_id = ? ORDER BY timestamp ASC', [id]);
-
-        // Group sets by exercise_id
-        const groupedMap = new Map<string, { weight: number | null; reps: number | null; completed: number }[]>();
-
-        sets.forEach((set) => {
-          if (!groupedMap.has(set.exercise_id)) {
-            groupedMap.set(set.exercise_id, []);
-          }
-          groupedMap.get(set.exercise_id)!.push({
-            weight: set.weight,
-            reps: set.reps,
-            completed: set.completed,
-          });
-        });
-
-        // Convert map to array and add exercise names
-        const grouped: ExerciseGroup[] = Array.from(groupedMap.entries()).map(([exerciseId, sets]) => {
-          const exercise = EXERCISES.find((ex) => ex.id === exerciseId);
-          return {
-            exerciseId,
-            exerciseName: exercise?.name || 'Unknown Exercise',
-            sets,
-          };
-        });
-
-        setExerciseGroups(grouped);
-      } catch (error) {
-        console.error('Error loading workout:', error);
-      } finally {
+      if (!workoutData) {
         setLoading(false);
+        return;
       }
-    };
 
-    loadWorkout();
+      setWorkout(workoutData);
+      setEditName(workoutData.name || '');
+      // Extract date string directly (assume it's stored as YYYY-MM-DD or ISO format)
+      // If it's ISO format, extract just the date part
+      let dateStr = workoutData.date;
+      if (dateStr.includes('T')) {
+        // ISO format: extract YYYY-MM-DD part
+        dateStr = dateStr.split('T')[0];
+      }
+      // Ensure it's in YYYY-MM-DD format
+      setEditDate(dateStr);
+
+      // Query 2: Get all sets for this workout
+      const sets = await db.getAllAsync<{
+        id: string;
+        workout_id: string;
+        exercise_id: string;
+        weight: number | null;
+        reps: number | null;
+        completed: number;
+        timestamp: string | null;
+      }>('SELECT * FROM sets WHERE workout_id = ? ORDER BY timestamp ASC', [id]);
+
+      // Group sets by exercise_id
+      const groupedMap = new Map<string, SetData[]>();
+
+      sets.forEach((set) => {
+        if (!groupedMap.has(set.exercise_id)) {
+          groupedMap.set(set.exercise_id, []);
+        }
+        groupedMap.get(set.exercise_id)!.push({
+          id: set.id,
+          weight: set.weight,
+          reps: set.reps,
+          completed: set.completed,
+        });
+      });
+
+      // Convert map to array and add exercise names
+      const grouped: ExerciseGroup[] = Array.from(groupedMap.entries()).map(([exerciseId, sets]) => {
+        const exercise = EXERCISES.find((ex) => ex.id === exerciseId);
+        return {
+          exerciseId,
+          exerciseName: exercise?.name || 'Unknown Exercise',
+          sets,
+        };
+      });
+
+      setExerciseGroups(grouped);
+    } catch (error) {
+      console.error('Error loading workout:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [id, db]);
+
+  useEffect(() => {
+    loadWorkout();
+  }, [loadWorkout]);
 
   const formatDuration = (seconds: number | null): string => {
     if (!seconds || seconds === 0) {
@@ -114,6 +126,29 @@ export default function WorkoutDetailScreen() {
     } else {
       return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
+  };
+
+  const formatDateSafe = (dateString: string): string => {
+    if (!dateString) return '';
+    
+    // Extract date part if it's an ISO string
+    let datePart = dateString;
+    if (dateString.includes('T')) {
+      datePart = dateString.split('T')[0];
+    }
+    
+    // Parse manually to avoid timezone issues
+    const parts = datePart.split('-');
+    if (parts.length !== 3) {
+      return dateString; // Fallback if format is unexpected
+    }
+    
+    const year = parts[0];
+    const month = parseInt(parts[1], 10);
+    const day = parts[2];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return `${months[month - 1]} ${day}, ${year}`;
   };
 
   const formatDate = (dateString: string): string => {
@@ -133,24 +168,37 @@ export default function WorkoutDetailScreen() {
     if (!workout || !id) return;
 
     try {
-      // Convert date to ISO string format
-      const dateObj = new Date(editDate);
-      const isoDate = dateObj.toISOString();
+      console.log('handleSave: Starting full save...');
 
-      await updateWorkoutDetails(db, id, editName || null, isoDate);
+      // 1. Save the Header (Name/Date)
+      console.log('handleSave: Saving workout details with:', { id, name: editName, date: editDate });
+      await updateWorkoutDetails(db, id, editName || null, editDate);
+      console.log('handleSave: Workout details saved successfully');
+
+      // 2. CRITICAL: Loop through ALL sets and save them to the DB
+      // This ensures that whatever is currently on screen gets saved,
+      // even if the 'onEndEditing' event didn't fire.
+      const allSets = exerciseGroups.flatMap((group) => group.sets);
+      console.log('handleSave: Found', allSets.length, 'sets to save');
       
-      // Update local state
-      setWorkout({
-        ...workout,
-        name: editName || null,
-        date: isoDate,
+      const setPromises = allSets.map((set) => {
+        console.log('handleSave: Saving set', set.id, 'with weight:', set.weight, 'reps:', set.reps, 'completed:', set.completed);
+        return updateSet(db, set.id, set.weight, set.reps, set.completed);
       });
+      
+      await Promise.all(setPromises);
+      console.log('handleSave: All sets saved successfully');
+
+      // 3. Reload data to verify
+      console.log('handleSave: Reloading workout data to verify');
+      await loadWorkout();
+      console.log('handleSave: Workout data reloaded');
       
       setIsEditing(false);
       Alert.alert('Success', 'Workout updated successfully!');
     } catch (error) {
-      console.error('Error saving workout:', error);
-      Alert.alert('Error', 'Failed to update workout. Please try again.');
+      console.error('handleSave: Save Error:', error);
+      Alert.alert('Save Error', 'Could not save workout. Check console.');
     }
   };
 
@@ -169,6 +217,90 @@ export default function WorkoutDetailScreen() {
           } catch (error) {
             console.error('Error deleting workout:', error);
             Alert.alert('Error', 'Failed to delete workout. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleSetChange = (setId: string, field: 'weight' | 'reps', value: string) => {
+    // Immediately update local state for optimistic UI update
+    // This MUST happen synchronously to unfreeze the UI
+    const numValue = value === '' ? null : (isNaN(parseFloat(value)) ? null : parseFloat(value));
+    
+    const updatedGroups = exerciseGroups.map((g) => ({
+      ...g,
+      sets: g.sets.map((s) => {
+        if (s.id === setId) {
+          return {
+            ...s,
+            [field]: numValue,
+          };
+        }
+        return s;
+      }),
+    }));
+    
+    // Update state immediately - this unfreezes the TextInput
+    setExerciseGroups(updatedGroups);
+    console.log('handleSetChange: Updated local state immediately for setId:', setId, 'field:', field, 'value:', numValue);
+  };
+
+  const handleSetUpdate = async (setId: string, field: 'weight' | 'reps', value: string) => {
+    try {
+      console.log('UI: handleSetUpdate: Starting DB update for setId:', setId, 'field:', field, 'textValue:', value);
+      
+      // Find the current set from updated state (already updated by handleSetChange)
+      const set = exerciseGroups
+        .flatMap((g) => g.sets)
+        .find((s) => s.id === setId);
+      if (!set) {
+        console.error('UI: handleSetUpdate: Set not found for setId:', setId);
+        return;
+      }
+
+      console.log('UI: handleSetUpdate: Current set state:', { weight: set.weight, reps: set.reps, completed: set.completed });
+
+      // Parse the value from the text input
+      const numValue = value === '' ? null : (isNaN(parseFloat(value)) ? null : parseFloat(value));
+      
+      // Use the parsed value for the field being updated, and current state for the other field
+      const finalWeight = field === 'weight' ? numValue : set.weight;
+      const finalReps = field === 'reps' ? numValue : set.reps;
+
+      console.log('UI: handleSetUpdate: Final values to save:', { setId, weight: finalWeight, reps: finalReps, completed: set.completed });
+      console.log('UI: handleSetUpdate: Calling updateSet with exact parameters:', [setId, finalWeight, finalReps, set.completed]);
+      
+      await updateSet(db, setId, finalWeight, finalReps, set.completed);
+      console.log('UI: handleSetUpdate: Database update successful');
+
+      // Refresh the workout data in the background (don't block UI)
+      // This ensures DB and UI stay in sync, but doesn't block the user
+      loadWorkout().catch((error) => {
+        console.error('UI: Error reloading workout after set update:', error);
+      });
+    } catch (error) {
+      console.error('UI: handleSetUpdate: Error updating set:', error);
+      Alert.alert('Error', 'Failed to update set. Please try again.');
+      // Reload on error to restore correct state
+      loadWorkout();
+    }
+  };
+
+  const handleSetDelete = async (setId: string) => {
+    Alert.alert('Delete Set?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteSet(db, setId);
+            // Refresh the workout data
+            await loadWorkout();
+          } catch (error) {
+            console.error('Error deleting set:', error);
+            Alert.alert('Error', 'Failed to delete set. Please try again.');
           }
         },
       },
@@ -195,13 +327,24 @@ export default function WorkoutDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: formatDate(workout.date),
+          title: formatDateSafe(workout.date),
           headerRight: () => (
             <Pressable
               onPress={() => {
                 if (isEditing) {
                   handleSave();
                 } else {
+                  // Initialize edit state when entering edit mode
+                  if (workout) {
+                    setEditName(workout.name || '');
+                    // Extract date string directly (no Date conversion to avoid timezone issues)
+                    let dateStr = workout.date;
+                    if (dateStr.includes('T')) {
+                      // ISO format: extract YYYY-MM-DD part
+                      dateStr = dateStr.split('T')[0];
+                    }
+                    setEditDate(dateStr);
+                  }
                   setIsEditing(true);
                 }
               }}
@@ -269,7 +412,7 @@ export default function WorkoutDetailScreen() {
                 {workout.name || 'Untitled Workout'}
               </Text>
               <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 4 }}>
-                {formatDate(workout.date)}
+                {formatDateSafe(workout.date)}
               </Text>
             </>
           )}
@@ -296,22 +439,93 @@ export default function WorkoutDetailScreen() {
             </Text>
             {group.sets.map((set, index) => (
               <View
-                key={index}
+                key={set.id}
                 style={{
                   flexDirection: 'row',
                   paddingVertical: 6,
                   borderBottomWidth: index < group.sets.length - 1 ? 1 : 0,
                   borderBottomColor: '#2a2a2a',
+                  alignItems: 'center',
                 }}>
-                <Text style={{ color: '#E5E5E5', fontSize: 14, flex: 1 }}>
+                <Text style={{ color: '#E5E5E5', fontSize: 14, width: 60 }}>
                   Set {index + 1}:
                 </Text>
-                <Text style={{ color: '#E5E5E5', fontSize: 14, flex: 1, textAlign: 'right' }}>
-                  {set.weight !== null ? `${set.weight} lbs` : '—'} × {set.reps !== null ? `${set.reps} reps` : '—'}
-                  {set.completed === 1 && (
-                    <Text style={{ color: '#10b981', marginLeft: 8 }}>✓</Text>
-                  )}
-                </Text>
+                {isEditing ? (
+                  <>
+                    <TextInput
+                      style={{
+                        color: 'white',
+                        backgroundColor: '#333',
+                        padding: 8,
+                        borderRadius: 6,
+                        fontSize: 14,
+                        borderWidth: 1,
+                        borderColor: '#2a2a2a',
+                        width: 80,
+                        marginRight: 8,
+                      }}
+                      placeholder="lbs"
+                      placeholderTextColor="#999"
+                      keyboardType="numeric"
+                      value={set.weight !== null && !isNaN(set.weight) ? set.weight.toString() : ''}
+                      onChangeText={(text) => {
+                        console.log('UI: Weight Input onChangeText - Set ID:', set.id, 'New Text:', text);
+                        handleSetChange(set.id, 'weight', text);
+                      }}
+                      onBlur={() => {
+                        console.log('UI: Weight Input onBlur - Set ID:', set.id, 'Current Value:', set.weight);
+                      }}
+                      onEndEditing={(e) => {
+                        console.log('UI: Weight Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
+                        handleSetUpdate(set.id, 'weight', e.nativeEvent.text);
+                      }}
+                    />
+                    <Text style={{ color: '#E5E5E5', fontSize: 14, marginRight: 8 }}>×</Text>
+                    <TextInput
+                      style={{
+                        color: 'white',
+                        backgroundColor: '#333',
+                        padding: 8,
+                        borderRadius: 6,
+                        fontSize: 14,
+                        borderWidth: 1,
+                        borderColor: '#2a2a2a',
+                        width: 80,
+                        marginRight: 8,
+                      }}
+                      placeholder="reps"
+                      placeholderTextColor="#999"
+                      keyboardType="numeric"
+                      value={set.reps !== null && !isNaN(set.reps) ? set.reps.toString() : ''}
+                      onChangeText={(text) => {
+                        console.log('UI: Reps Input onChangeText - Set ID:', set.id, 'New Text:', text);
+                        handleSetChange(set.id, 'reps', text);
+                      }}
+                      onBlur={() => {
+                        console.log('UI: Reps Input onBlur - Set ID:', set.id, 'Current Value:', set.reps);
+                      }}
+                      onEndEditing={(e) => {
+                        console.log('UI: Reps Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
+                        handleSetUpdate(set.id, 'reps', e.nativeEvent.text);
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => handleSetDelete(set.id)}
+                      style={{
+                        padding: 4,
+                        marginLeft: 8,
+                      }}>
+                      <MaterialIcons name="delete" size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <Text style={{ color: '#E5E5E5', fontSize: 14, flex: 1, textAlign: 'right' }}>
+                    {set.weight !== null ? `${set.weight} lbs` : '—'} × {set.reps !== null ? `${set.reps} reps` : '—'}
+                    {set.completed === 1 && (
+                      <Text style={{ color: '#10b981', marginLeft: 8 }}>✓</Text>
+                    )}
+                  </Text>
+                )}
               </View>
             ))}
           </View>

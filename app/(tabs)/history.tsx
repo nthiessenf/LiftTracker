@@ -32,16 +32,36 @@ export default function HistoryScreen() {
     }, [loadHistory])
   );
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
+  const formatDateString = (dateString: string): string => {
+    // Parse the date string manually to avoid timezone conversion issues
+    // Expected format: "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss.sssZ"
+    let datePart = dateString;
+    if (dateString.includes('T')) {
+      // Extract just the date part if it's an ISO string
+      datePart = dateString.split('T')[0];
+    }
+    
+    // Split the date string: "2026-01-04" -> ["2026", "01", "04"]
+    const parts = datePart.split('-');
+    if (parts.length !== 3) {
+      // Fallback to original if format is unexpected
+      return dateString;
+    }
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10); // 1-12
+    const day = parseInt(parts[2], 10); // 1-31
+    
+    // Create a date object at noon to avoid midnight timezone offsets
+    const date = new Date(year, month - 1, day, 12, 0, 0);
+    
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     const dayName = days[date.getDay()];
-    const month = months[date.getMonth()];
-    const day = date.getDate();
+    const monthName = months[date.getMonth()];
     
-    return `${dayName}, ${month} ${day}`;
+    return `${dayName}, ${monthName} ${day}`;
   };
 
   const formatDuration = (seconds: number | null): string => {
@@ -110,7 +130,7 @@ export default function HistoryScreen() {
             {item.name || 'Untitled Workout'}
           </Text>
           <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 2 }}>
-            {formatDate(item.date)}
+            {formatDateString(item.date)}
           </Text>
           <Text style={{ color: '#999', fontSize: 12 }}>
             {formatDuration(item.duration_seconds)}
