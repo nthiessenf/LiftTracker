@@ -1,4 +1,5 @@
 import { EXERCISES, Exercise } from '@/data/exercises';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
@@ -31,6 +32,7 @@ export default function ActiveSessionScreen() {
   const [restTimerSeconds, setRestTimerSeconds] = useState(0);
   const [showTimer, setShowTimer] = useState(false);
   const [timerComplete, setTimerComplete] = useState(false);
+  const [defaultRestTimer, setDefaultRestTimer] = useState(90); // Default to 90 seconds
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch workout history and find most recent sets for an exercise
@@ -101,6 +103,26 @@ export default function ActiveSessionScreen() {
     };
   };
 
+  // Load default rest timer from AsyncStorage on mount
+  useEffect(() => {
+    const loadDefaultRestTimer = async () => {
+      try {
+        const savedTimer = await AsyncStorage.getItem('default_rest_timer');
+        if (savedTimer) {
+          const timerValue = parseInt(savedTimer, 10);
+          if (!isNaN(timerValue) && timerValue > 0) {
+            setDefaultRestTimer(timerValue);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading default rest timer:', error);
+        // Keep default of 90 seconds on error
+      }
+    };
+
+    loadDefaultRestTimer();
+  }, []);
+
   // Pre-fill exercises from template if template data exists
   useEffect(() => {
     const loadTemplateExercises = async () => {
@@ -161,7 +183,7 @@ export default function ActiveSessionScreen() {
       // Timer already running, don't restart
       return;
     }
-    setRestTimerSeconds(90);
+    setRestTimerSeconds(defaultRestTimer);
     setShowTimer(true);
     setTimerComplete(false);
   };
