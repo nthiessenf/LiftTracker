@@ -1,5 +1,4 @@
 import { Exercise, EXERCISES } from '@/data/exercises';
-import { WORKOUT_TEMPLATES, WorkoutTemplate } from '@/data/templates';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -61,16 +60,6 @@ export default function WorkoutsScreen() {
     }, [loadUserRoutines])
   );
 
-  const handleStartTemplate = (template: WorkoutTemplate) => {
-    router.push({
-      pathname: '/session/active',
-      params: {
-        templateId: template.id,
-        exerciseIds: template.exerciseIds.join(','),
-      },
-    });
-  };
-
   const handleStartRoutine = (routine: Routine) => {
     router.push({
       pathname: '/session/active',
@@ -105,42 +94,6 @@ export default function WorkoutsScreen() {
       console.error('Error creating quick start workout:', error);
       Alert.alert('Error', 'Failed to start workout. Please try again.');
     }
-  };
-
-  const renderTemplateItem = ({ item }: { item: WorkoutTemplate }) => {
-    return (
-      <View
-        style={{
-          backgroundColor: '#333',
-          padding: 15,
-          marginBottom: 10,
-          marginHorizontal: 16,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-        }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
-              {item.name}
-            </Text>
-            <Text style={{ color: '#E5E5E5', fontSize: 14 }}>
-              {item.exerciseIds.length} {item.exerciseIds.length === 1 ? 'Exercise' : 'Exercises'}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => handleStartTemplate(item)}
-            style={{
-              backgroundColor: '#10b981',
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              borderRadius: 8,
-            }}>
-            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Start</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
   };
 
   const handleEdit = (routineId: string) => {
@@ -402,10 +355,10 @@ export default function WorkoutsScreen() {
               />
             </View>
 
-            {/* My Routines Header */}
+            {/* Routines Header */}
             <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>My Routines</Text>
+                <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Routines</Text>
                 <TouchableOpacity
                   onPress={handleCreateRoutine}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -420,19 +373,10 @@ export default function WorkoutsScreen() {
             ) : (
               <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
                 <Text style={{ color: '#666', fontSize: 14, fontStyle: 'italic' }}>
-                  No custom routines yet. Create one to get started!
+                  No routines yet. Create one to get started!
                 </Text>
               </View>
             )}
-
-            <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 }}>
-              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 12 }}>
-                Quick Start Routines
-              </Text>
-            </View>
-            {WORKOUT_TEMPLATES.map((template) => (
-              <View key={template.id}>{renderTemplateItem({ item: template })}</View>
-            ))}
           </>
         }
         data={[]}

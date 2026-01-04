@@ -1,3 +1,4 @@
+import { seedDatabaseWithTrack } from '@/data/database/db';
 import { exportDatabaseToJson } from '@/data/services/backupService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -125,6 +126,35 @@ export default function SettingsScreen() {
               </Pressable>
             </View>
           </View>
+        </View>
+
+        {/* Developer Tools Section */}
+        <View style={{ marginTop: 32 }}>
+          <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 16 }}>
+            Developer Tools
+          </Text>
+
+          <Pressable
+            onPress={async () => {
+              try {
+                await seedDatabaseWithTrack(db, 'FULL_BODY');
+                Alert.alert('Success', 'Full Body track seeded successfully!');
+              } catch (error) {
+                console.error('Error seeding track:', error);
+                Alert.alert('Error', 'Failed to seed track. Check console for details.');
+              }
+            }}
+            style={{
+              backgroundColor: '#10b981',
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderRadius: 8,
+              alignItems: 'center',
+            }}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              Seed Full Body Track (Dev)
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
     </View>

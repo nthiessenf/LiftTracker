@@ -1,3 +1,4 @@
+import { TRAINING_TRACKS } from '@/data/tracks';
 import { SQLiteDatabase } from 'expo-sqlite';
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
@@ -128,6 +129,50 @@ export async function deleteSet(db: SQLiteDatabase, setId: string): Promise<void
     await db.runAsync('DELETE FROM sets WHERE id = ?', [setId]);
   } catch (error) {
     console.error('Error deleting set:', error);
+    throw error;
+  }
+}
+
+export async function seedDatabaseWithTrack(db: SQLiteDatabase, trackKey: string): Promise<{ success: boolean }> {
+  try {
+    const track = TRAINING_TRACKS[trackKey];
+    if (!track) {
+      throw new Error(`Training track '${trackKey}' not found`);
+    }
+
+    await db.withTransactionAsync(async () => {
+      const now = new Date().toISOString();
+      let baseTimestamp = Date.now();
+
+      // Loop through each routine in the track
+      for (const routine of track.routines) {
+        // Generate a unique routine ID
+        const routineId = `${baseTimestamp}-${Math.random().toString(36).substr(2, 9)}`;
+        baseTimestamp += 1; // Increment to ensure uniqueness
+
+        // Insert routine into routines table
+        await db.runAsync(
+          'INSERT INTO routines (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+          [routineId, routine.name, now, now]
+        );
+
+        // Loop through exercises and insert into routine_exercises
+        for (let i = 0; i < routine.exerciseIds.length; i++) {
+          const exerciseId = routine.exerciseIds[i];
+          const routineExerciseId = `${baseTimestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`;
+          baseTimestamp += 1; // Increment to ensure uniqueness
+
+          await db.runAsync(
+            'INSERT INTO routine_exercises (id, routine_id, exercise_id, order_index) VALUES (?, ?, ?, ?)',
+            [routineExerciseId, routineId, exerciseId, i]
+          );
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error seeding database with track:', error);
     throw error;
   }
 }
