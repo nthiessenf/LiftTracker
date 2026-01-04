@@ -1,4 +1,5 @@
 import { EXERCISES, Exercise } from '@/data/exercises';
+import { WORKOUT_TEMPLATES } from '@/data/templates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -25,7 +26,7 @@ type WorkoutSession = {
 };
 
 export default function ActiveSessionScreen() {
-  const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string }>();
+  const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string; workoutId?: string }>();
   const db = useSQLiteContext();
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
@@ -301,6 +302,25 @@ export default function ActiveSessionScreen() {
     try {
       const workoutId = Date.now().toString();
       const workoutDate = new Date().toISOString();
+      
+      // Get workout name from routine/template if templateId exists
+      let workoutName: string | null = null;
+      if (params.templateId) {
+        // Check if it's a routine (in routines table)
+        const routine = await db.getFirstAsync<{ name: string }>(
+          'SELECT name FROM routines WHERE id = ?',
+          [params.templateId]
+        );
+        if (routine) {
+          workoutName = routine.name;
+        } else {
+          // Check if it's a template
+          const template = WORKOUT_TEMPLATES.find((t) => t.id === params.templateId);
+          if (template) {
+            workoutName = template.name;
+          }
+        }
+      }
 
       // Use transaction to ensure data integrity
       await db.withTransactionAsync(async () => {
@@ -308,7 +328,7 @@ export default function ActiveSessionScreen() {
         await db.runAsync(
           `INSERT INTO workouts (id, date, name, duration_seconds) 
            VALUES (?, ?, ?, ?)`,
-          [workoutId, workoutDate, null, null]
+          [workoutId, workoutDate, workoutName, null]
         );
 
         // Iterate through sessionExercises and their sets

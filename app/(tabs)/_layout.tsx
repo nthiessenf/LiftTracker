@@ -3,7 +3,6 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Pressable } from 'react-native';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -48,18 +47,6 @@ export default function TabLayout() {
         options={{
           title: 'Workouts',
           tabBarIcon: ({ color }) => <MaterialTabBarIcon name="dumbbell" color={color} />,
-          headerRight: () => (
-            <Pressable style={{ marginRight: 16 }}>
-              {({ pressed }) => (
-                <FontAwesome
-                  name="plus"
-                  size={24}
-                  color="#FFFFFF"
-                  style={{ opacity: pressed ? 0.5 : 1 }}
-                />
-              )}
-            </Pressable>
-          ),
         }}
       />
       <Tabs.Screen
