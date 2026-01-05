@@ -1,5 +1,4 @@
 import WeeklyGoalRing from '@/components/WeeklyGoalRing';
-import { WORKOUT_TEMPLATES } from '@/data/templates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -24,7 +23,7 @@ export default function DashboardScreen() {
   const db = useSQLiteContext();
   const [weeklyProgress, setWeeklyProgress] = useState<DayStatus[]>([]);
   const [workoutCount, setWorkoutCount] = useState(0);
-  const [nextWorkout, setNextWorkout] = useState<string | null>(null);
+  const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[] } | null>(null);
   const [weeklyGoal, setWeeklyGoal] = useState(3);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -176,42 +175,67 @@ export default function DashboardScreen() {
         'SELECT id FROM workouts ORDER BY date DESC LIMIT 1'
       );
 
-      if (lastWorkout) {
-        // Query 3: Get distinct exercise IDs from the last workout
-        const lastExerciseIds = await db.getAllAsync<{ exercise_id: string }>(
-          'SELECT DISTINCT exercise_id FROM sets WHERE workout_id = ?',
-          [lastWorkout.id]
+      // Query routines to find "Workout A" and "Workout B"
+      const workoutA = await db.getFirstAsync<{ id: string; name: string }>(
+        'SELECT id, name FROM routines WHERE name = ? LIMIT 1',
+        ['Workout A']
+      );
+      const workoutB = await db.getFirstAsync<{ id: string; name: string }>(
+        'SELECT id, name FROM routines WHERE name = ? LIMIT 1',
+        ['Workout B']
+      );
+
+      if (workoutA && workoutB) {
+        // Get exercise IDs for both routines
+        const workoutAExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+          [workoutA.id]
+        );
+        const workoutBExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+          [workoutB.id]
         );
 
-        // Convert to sorted array of exercise IDs
-        const exerciseIds = lastExerciseIds.map((row) => row.exercise_id).sort();
-        
-        const workoutAIds = WORKOUT_TEMPLATES.find((t) => t.id === 'workout-a')?.exerciseIds.sort() || [];
-        const workoutBIds = WORKOUT_TEMPLATES.find((t) => t.id === 'workout-b')?.exerciseIds.sort() || [];
+        const workoutAIds = workoutAExercises.map((row) => row.exercise_id).sort();
+        const workoutBIds = workoutBExercises.map((row) => row.exercise_id).sort();
 
-        // Check if last workout matches Workout A or B pattern
-        const wasWorkoutA = workoutAIds.every((id: string) => exerciseIds.includes(id)) && 
-                            exerciseIds.length === workoutAIds.length;
-        const wasWorkoutB = workoutBIds.every((id: string) => exerciseIds.includes(id)) && 
-                            exerciseIds.length === workoutBIds.length;
+        if (lastWorkout) {
+          // Query 3: Get distinct exercise IDs from the last workout
+          const lastExerciseIds = await db.getAllAsync<{ exercise_id: string }>(
+            'SELECT DISTINCT exercise_id FROM sets WHERE workout_id = ?',
+            [lastWorkout.id]
+          );
 
-        if (wasWorkoutA) {
-          setNextWorkout('workout-b');
-        } else if (wasWorkoutB) {
-          setNextWorkout('workout-a');
+          // Convert to sorted array of exercise IDs
+          const exerciseIds = lastExerciseIds.map((row) => row.exercise_id).sort();
+
+          // Check if last workout matches Workout A or B pattern
+          const wasWorkoutA = workoutAIds.every((id: string) => exerciseIds.includes(id)) && 
+                              exerciseIds.length === workoutAIds.length;
+          const wasWorkoutB = workoutBIds.every((id: string) => exerciseIds.includes(id)) && 
+                              exerciseIds.length === workoutBIds.length;
+
+          if (wasWorkoutA) {
+            setNextWorkout({ id: workoutB.id, name: workoutB.name, exerciseIds: workoutBIds });
+          } else if (wasWorkoutB) {
+            setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
+          } else {
+            // Default to Workout A if pattern doesn't match
+            setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
+          }
         } else {
-          // Default to Workout A if pattern doesn't match
-          setNextWorkout('workout-a');
+          // No history, default to Workout A
+          setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
         }
       } else {
-        // No history, default to Workout A
-        setNextWorkout('workout-a');
+        // If Workout A or B don't exist in database, set to null
+        setNextWorkout(null);
       }
     } catch (error) {
       console.error('Error loading weekly progress:', error);
       setWeeklyProgress([]);
       setWorkoutCount(0);
-      setNextWorkout('workout-a');
+      setNextWorkout(null);
     }
   }, [db]);
 
@@ -227,16 +251,13 @@ export default function DashboardScreen() {
 
   const handleStartNextWorkout = () => {
     if (nextWorkout) {
-      const template = WORKOUT_TEMPLATES.find((t) => t.id === nextWorkout);
-      if (template) {
-        router.push({
-          pathname: '/session/active',
-          params: {
-            templateId: template.id,
-            exerciseIds: template.exerciseIds.join(','),
-          },
-        });
-      }
+      router.push({
+        pathname: '/session/active',
+        params: {
+          templateId: nextWorkout.id,
+          exerciseIds: nextWorkout.exerciseIds.join(','),
+        },
+      });
     }
   };
 
@@ -495,7 +516,7 @@ export default function DashboardScreen() {
               minWidth: 320,
             }}>
             <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
-              Up Next: {WORKOUT_TEMPLATES.find((t) => t.id === nextWorkout)?.name || 'Workout'}
+              Up Next: {nextWorkout.name}
             </Text>
             <Pressable
               onPress={handleStartNextWorkout}

@@ -3,7 +3,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 
 type Routine = {
   id: string;
@@ -327,33 +327,6 @@ export default function WorkoutsScreen() {
               {/* Right Side: Chevron */}
               <MaterialIcons name="chevron-right" size={20} color="#10b981" />
             </Pressable>
-
-            {/* Search & Browse Bar */}
-            <View
-              style={{
-                backgroundColor: '#18181b', // bg-zinc-900
-                marginHorizontal: 16,
-                marginBottom: 24, // mb-6
-                padding: 12, // p-3
-                borderRadius: 12, // rounded-xl
-                flexDirection: 'row', // flex-row
-                alignItems: 'center', // items-center
-              }}>
-              {/* Left: Search Icon */}
-              <Ionicons name="search" size={20} color="#71717a" />
-              
-              {/* Middle: Search Input */}
-              <TextInput
-                placeholder="Find routines..."
-                placeholderTextColor="#71717a"
-                style={{
-                  flex: 1,
-                  marginLeft: 12,
-                  color: 'white',
-                  fontSize: 16,
-                }}
-              />
-            </View>
 
             {/* Routines Header */}
             <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
