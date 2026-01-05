@@ -1,5 +1,4 @@
 import { EXERCISES, Exercise } from '@/data/exercises';
-import { WORKOUT_TEMPLATES } from '@/data/templates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -303,7 +302,7 @@ export default function ActiveSessionScreen() {
       const workoutId = Date.now().toString();
       const workoutDate = new Date().toISOString();
       
-      // Get workout name from routine/template if templateId exists
+      // Get workout name from routine if templateId exists
       let workoutName: string | null = null;
       if (params.templateId) {
         // Check if it's a routine (in routines table)
@@ -313,12 +312,6 @@ export default function ActiveSessionScreen() {
         );
         if (routine) {
           workoutName = routine.name;
-        } else {
-          // Check if it's a template
-          const template = WORKOUT_TEMPLATES.find((t) => t.id === params.templateId);
-          if (template) {
-            workoutName = template.name;
-          }
         }
       }
 
