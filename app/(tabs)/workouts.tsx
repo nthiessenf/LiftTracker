@@ -1,9 +1,8 @@
-import { Exercise, EXERCISES } from '@/data/exercises';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
 
 type Routine = {
   id: string;
@@ -15,7 +14,6 @@ type Routine = {
 export default function WorkoutsScreen() {
   const db = useSQLiteContext();
   const [userRoutines, setUserRoutines] = useState<Routine[]>([]);
-  const [libraryVisible, setLibraryVisible] = useState(false);
 
   const loadUserRoutines = useCallback(async () => {
     try {
@@ -263,40 +261,8 @@ export default function WorkoutsScreen() {
     );
   };
 
-  const renderExerciseItem = ({ item }: { item: Exercise }) => {
-    return (
-      <View
-        style={{
-          backgroundColor: '#1e1e1e',
-          marginHorizontal: 16,
-          marginVertical: 8,
-          padding: 16,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-        }}>
-        <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
-          {item.name}
-        </Text>
-        <Text style={{ color: '#E5E5E5', fontSize: 14 }}>{item.muscleGroup}</Text>
-      </View>
-    );
-  };
-
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => setLibraryVisible(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={{ marginRight: 16 }}>
-              <Ionicons name="book-outline" size={24} color="#10b981" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
       <View style={{ backgroundColor: '#121212', flex: 1 }}>
         <FlatList
         ListHeaderComponent={
@@ -359,43 +325,6 @@ export default function WorkoutsScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Exercise Library Modal */}
-      <Modal
-        visible={libraryVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setLibraryVisible(false)}>
-        <View style={{ backgroundColor: '#121212', flex: 1 }}>
-          {/* Header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingTop: 60,
-              paddingBottom: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: '#2a2a2a',
-            }}>
-            <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>Exercise Library</Text>
-            <TouchableOpacity
-              onPress={() => setLibraryVisible(false)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Exercise List */}
-          <FlatList
-            data={EXERCISES}
-            renderItem={renderExerciseItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      </Modal>
       </View>
     </>
   );

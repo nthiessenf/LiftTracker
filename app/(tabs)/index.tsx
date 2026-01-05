@@ -1,9 +1,10 @@
 import WeeklyGoalRing from '@/components/WeeklyGoalRing';
+import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type WorkoutSession = {
   id: string;
@@ -314,7 +315,20 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={{ backgroundColor: '#000000', flex: 1 }}>
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/settings')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ marginRight: 16 }}>
+              <FontAwesome name="cog" size={24} color="#10b981" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <View style={{ backgroundColor: '#121212', flex: 1 }}>
       {/* Goal Edit Modal (Android fallback) */}
       <Modal
         visible={showGoalModal}
@@ -538,5 +552,6 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
     </View>
+    </>
   );
 }
