@@ -64,6 +64,16 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       // Set database version
       await db.execAsync('PRAGMA user_version = 1;');
     }
+
+    // Migration 2: Add routine_id column to workouts table
+    if (currentVersion < 2) {
+      await db.execAsync(`
+        ALTER TABLE workouts ADD COLUMN routine_id TEXT;
+      `);
+
+      // Set database version
+      await db.execAsync('PRAGMA user_version = 2;');
+    }
   } catch (error) {
     console.error('Database migration error:', error);
     throw error;

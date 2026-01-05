@@ -169,67 +169,50 @@ export default function DashboardScreen() {
       const streak = calculateStreak(workoutDates);
       setCurrentStreak(streak);
 
-      // Determine next workout
-      // Query 2: Get the most recent workout ID
-      const lastWorkout = await db.getFirstAsync<{ id: string }>(
-        'SELECT id FROM workouts ORDER BY date DESC LIMIT 1'
+      // Determine next workout using routine_id rotation
+      // Step A: Fetch ALL routines ordered by creation
+      const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
+        'SELECT id, name FROM routines ORDER BY id ASC'
       );
 
-      // Query routines to find "Workout A" and "Workout B"
-      const workoutA = await db.getFirstAsync<{ id: string; name: string }>(
-        'SELECT id, name FROM routines WHERE name = ? LIMIT 1',
-        ['Workout A']
-      );
-      const workoutB = await db.getFirstAsync<{ id: string; name: string }>(
-        'SELECT id, name FROM routines WHERE name = ? LIMIT 1',
-        ['Workout B']
-      );
-
-      if (workoutA && workoutB) {
-        // Get exercise IDs for both routines
-        const workoutAExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
-          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
-          [workoutA.id]
-        );
-        const workoutBExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
-          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
-          [workoutB.id]
-        );
-
-        const workoutAIds = workoutAExercises.map((row) => row.exercise_id).sort();
-        const workoutBIds = workoutBExercises.map((row) => row.exercise_id).sort();
-
-        if (lastWorkout) {
-          // Query 3: Get distinct exercise IDs from the last workout
-          const lastExerciseIds = await db.getAllAsync<{ exercise_id: string }>(
-            'SELECT DISTINCT exercise_id FROM sets WHERE workout_id = ?',
-            [lastWorkout.id]
-          );
-
-          // Convert to sorted array of exercise IDs
-          const exerciseIds = lastExerciseIds.map((row) => row.exercise_id).sort();
-
-          // Check if last workout matches Workout A or B pattern
-          const wasWorkoutA = workoutAIds.every((id: string) => exerciseIds.includes(id)) && 
-                              exerciseIds.length === workoutAIds.length;
-          const wasWorkoutB = workoutBIds.every((id: string) => exerciseIds.includes(id)) && 
-                              exerciseIds.length === workoutBIds.length;
-
-          if (wasWorkoutA) {
-            setNextWorkout({ id: workoutB.id, name: workoutB.name, exerciseIds: workoutBIds });
-          } else if (wasWorkoutB) {
-            setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
-          } else {
-            // Default to Workout A if pattern doesn't match
-            setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
-          }
-        } else {
-          // No history, default to Workout A
-          setNextWorkout({ id: workoutA.id, name: workoutA.name, exerciseIds: workoutAIds });
-        }
-      } else {
-        // If Workout A or B don't exist in database, set to null
+      if (allRoutines.length === 0) {
         setNextWorkout(null);
+      } else {
+        // Step B: Get the most recent workout's routine_id
+        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
+          'SELECT routine_id FROM workouts ORDER BY date DESC LIMIT 1'
+        );
+
+        let nextRoutineIndex = 0; // Default to first routine
+
+        // Step C: Rotation logic
+        if (lastWorkout?.routine_id) {
+          // Find the index of the last workout's routine
+          const lastRoutineIndex = allRoutines.findIndex((r) => r.id === lastWorkout.routine_id);
+          
+          if (lastRoutineIndex !== -1) {
+            // Routine found: rotate to next (wrap around with modulo)
+            nextRoutineIndex = (lastRoutineIndex + 1) % allRoutines.length;
+          }
+          // If routine_id not found in list, keep default (index 0)
+        }
+        // If no routine_id (legacy data), keep default (index 0)
+
+        const nextRoutine = allRoutines[nextRoutineIndex];
+
+        // Get exercise IDs for the next routine
+        const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+          [nextRoutine.id]
+        );
+
+        const exerciseIds = routineExercises.map((row) => row.exercise_id);
+
+        setNextWorkout({
+          id: nextRoutine.id,
+          name: nextRoutine.name,
+          exerciseIds: exerciseIds,
+        });
       }
     } catch (error) {
       console.error('Error loading weekly progress:', error);

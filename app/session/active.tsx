@@ -319,9 +319,9 @@ export default function ActiveSessionScreen() {
       await db.withTransactionAsync(async () => {
         // Insert workout
         await db.runAsync(
-          `INSERT INTO workouts (id, date, name, duration_seconds) 
-           VALUES (?, ?, ?, ?)`,
-          [workoutId, workoutDate, workoutName, null]
+          `INSERT INTO workouts (id, date, name, duration_seconds, routine_id) 
+           VALUES (?, ?, ?, ?, ?)`,
+          [workoutId, workoutDate, workoutName, null, params.templateId || null]
         );
 
         // Iterate through sessionExercises and their sets
