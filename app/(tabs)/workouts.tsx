@@ -176,7 +176,7 @@ export default function WorkoutsScreen() {
     );
   };
 
-  const formatDateSafe = (dateString: string | null): string => {
+  const getDaysAgo = (dateString: string | null): string => {
     if (!dateString) return 'Never';
     
     // Extract date part if it's an ISO string
@@ -188,28 +188,43 @@ export default function WorkoutsScreen() {
     // Parse manually to avoid timezone issues
     const parts = datePart.split('-');
     if (parts.length !== 3) {
-      return dateString;
+      return 'Never';
     }
     
-    const year = parts[0];
-    const month = parseInt(parts[1], 10);
-    const day = parts[2];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const day = parseInt(parts[2], 10);
     
-    return `${months[month - 1]} ${day}, ${year}`;
+    // Create date objects at noon to avoid timezone issues
+    const workoutDate = new Date(year, month, day, 12, 0, 0);
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    
+    // Calculate difference in days
+    const diffTime = today.getTime() - workoutDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else {
+      return `${diffDays} days ago`;
+    }
+  };
+
+  const handleCardPress = (routineId: string) => {
+    router.push(`/routines/detail/${routineId}`);
   };
 
   const renderRoutineItem = ({ item }: { item: Routine }) => {
-    // Format last performed date for compact display
-    const lastPerformedText = item.lastPerformed
-      ? formatDateSafe(item.lastPerformed).split(',')[0] // Just "Jan 04" part
-      : 'Never';
-
-    // Count exercises
-    const exerciseCount = item.exerciseIds.length;
+    // Get relative time for last performed
+    const lastPerformedText = getDaysAgo(item.lastPerformed);
 
     return (
-      <View
+      <TouchableOpacity
+        onPress={() => handleCardPress(item.id)}
+        activeOpacity={0.7}
         style={{
           backgroundColor: '#27272a', // bg-zinc-800
           padding: 16, // p-4
@@ -228,7 +243,7 @@ export default function WorkoutsScreen() {
             {item.name}
           </Text>
           <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-            {exerciseCount} {exerciseCount === 1 ? 'Exercise' : 'Exercises'} • Last: {lastPerformedText}
+            Last: {lastPerformedText}
           </Text>
         </View>
 
@@ -236,7 +251,10 @@ export default function WorkoutsScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {/* More Menu: Horizontal dots, subtle color, with right margin */}
           <TouchableOpacity
-            onPress={() => handleRoutineMenu(item)}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleRoutineMenu(item);
+            }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={{
               padding: 8,
@@ -247,7 +265,10 @@ export default function WorkoutsScreen() {
 
           {/* Start Button: Rounded-lg to match templates (not full pill) */}
           <TouchableOpacity
-            onPress={() => handleStartRoutine(item)}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleStartRoutine(item);
+            }}
             style={{
               backgroundColor: '#10b981', // bg-emerald-500
               paddingHorizontal: 20, // px-5
@@ -257,7 +278,7 @@ export default function WorkoutsScreen() {
             <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Start</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
