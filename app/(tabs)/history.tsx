@@ -48,8 +48,9 @@ export default function HistoryScreen() {
 
   // Transform workout dates into markedDates format for Calendar
   const markedDates = useMemo(() => {
-    const marked: { [key: string]: { marked: boolean; dotColor: string } } = {};
+    const marked: { [key: string]: any } = {};
     
+    // First, mark all workout days with solid background
     history.forEach((workout) => {
       // Extract date part (YYYY-MM-DD)
       let dateKey = workout.date;
@@ -60,25 +61,51 @@ export default function HistoryScreen() {
       // Ensure it's in YYYY-MM-DD format
       if (dateKey.match(/^\d{4}-\d{2}-\d{2}$/)) {
         marked[dateKey] = {
-          marked: true,
-          dotColor: '#10b981', // Emerald green to match app theme
+          selected: true,
+          selectedColor: '#10b981', // Emerald green to match app theme
+          selectedTextColor: '#ffffff', // White text for contrast
         };
       }
     });
 
-    // Mark selected date
-    if (selectedDate && marked[selectedDate]) {
-      marked[selectedDate] = {
-        ...marked[selectedDate],
-        selected: true,
-        selectedColor: '#10b981',
-      };
-    } else if (selectedDate) {
-      marked[selectedDate] = {
-        marked: false,
-        selected: true,
-        selectedColor: '#10b981',
-      };
+    // Handle user-selected date
+    if (selectedDate) {
+      if (marked[selectedDate]) {
+        // Date is both a workout day AND selected - add a border to make it stand out
+        marked[selectedDate] = {
+          ...marked[selectedDate],
+          customStyles: {
+            container: {
+              backgroundColor: '#10b981',
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: '#ffffff', // White border for emphasis
+            },
+            text: {
+              color: '#ffffff',
+              fontWeight: 'bold',
+            },
+          },
+        };
+      } else {
+        // Date is selected but not a workout day - show with a different style
+        marked[selectedDate] = {
+          selected: true,
+          selectedColor: '#3f3f46', // Subtle gray background
+          selectedTextColor: '#ffffff',
+          customStyles: {
+            container: {
+              backgroundColor: '#3f3f46',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#10b981', // Green border to indicate selection
+            },
+            text: {
+              color: '#ffffff',
+            },
+          },
+        };
+      }
     }
 
     return marked;
@@ -254,6 +281,7 @@ export default function HistoryScreen() {
         <Calendar
           onDayPress={handleDayPress}
           markedDates={markedDates}
+          markingType="custom"
           theme={calendarTheme}
           style={{
             borderRadius: 12,
