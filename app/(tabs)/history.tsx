@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 
 type Workout = {
   id: string;
@@ -13,6 +14,7 @@ type Workout = {
 export default function HistoryScreen() {
   const db = useSQLiteContext();
   const [history, setHistory] = useState<Workout[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
   const loadHistory = useCallback(async () => {
     try {
@@ -20,9 +22,21 @@ export default function HistoryScreen() {
         'SELECT * FROM workouts ORDER BY date DESC'
       );
       setHistory(workouts);
+
+      // Set initial selected date to most recent workout date, or today if no workouts
+      if (workouts.length > 0) {
+        const mostRecentDate = workouts[0].date.split('T')[0];
+        setSelectedDate(mostRecentDate);
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+      }
     } catch (error) {
       console.error('Error loading history:', error);
       setHistory([]);
+      // Set to today if error
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
     }
   }, [db]);
 
@@ -31,6 +45,57 @@ export default function HistoryScreen() {
       loadHistory();
     }, [loadHistory])
   );
+
+  // Transform workout dates into markedDates format for Calendar
+  const markedDates = useMemo(() => {
+    const marked: { [key: string]: { marked: boolean; dotColor: string } } = {};
+    
+    history.forEach((workout) => {
+      // Extract date part (YYYY-MM-DD)
+      let dateKey = workout.date;
+      if (dateKey.includes('T')) {
+        dateKey = dateKey.split('T')[0];
+      }
+      
+      // Ensure it's in YYYY-MM-DD format
+      if (dateKey.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        marked[dateKey] = {
+          marked: true,
+          dotColor: '#10b981', // Emerald green to match app theme
+        };
+      }
+    });
+
+    // Mark selected date
+    if (selectedDate && marked[selectedDate]) {
+      marked[selectedDate] = {
+        ...marked[selectedDate],
+        selected: true,
+        selectedColor: '#10b981',
+      };
+    } else if (selectedDate) {
+      marked[selectedDate] = {
+        marked: false,
+        selected: true,
+        selectedColor: '#10b981',
+      };
+    }
+
+    return marked;
+  }, [history, selectedDate]);
+
+  // Filter workouts by selected date
+  const filteredWorkouts = useMemo(() => {
+    if (!selectedDate) return [];
+    
+    return history.filter((workout) => {
+      let workoutDate = workout.date;
+      if (workoutDate.includes('T')) {
+        workoutDate = workoutDate.split('T')[0];
+      }
+      return workoutDate === selectedDate;
+    });
+  }, [history, selectedDate]);
 
   const formatDateString = (dateString: string): string => {
     // Parse the date string manually to avoid timezone conversion issues
@@ -109,6 +174,10 @@ export default function HistoryScreen() {
     router.push(`/history/${workoutId}`);
   };
 
+  const handleDayPress = (day: { dateString: string }) => {
+    setSelectedDate(day.dateString);
+  };
+
   const renderWorkoutItem = ({ item }: { item: Workout }) => {
     return (
       <Pressable
@@ -151,26 +220,68 @@ export default function HistoryScreen() {
     );
   };
 
+  // Calendar theme matching app's dark theme
+  const calendarTheme = {
+    backgroundColor: '#121212',
+    calendarBackground: '#121212',
+    textSectionTitleColor: '#E5E5E5',
+    selectedDayBackgroundColor: '#10b981',
+    selectedDayTextColor: '#ffffff',
+    todayTextColor: '#10b981',
+    dayTextColor: '#ffffff',
+    textDisabledColor: '#666',
+    dotColor: '#10b981',
+    selectedDotColor: '#ffffff',
+    arrowColor: '#10b981',
+    monthTextColor: '#ffffff',
+    indicatorColor: '#10b981',
+    textDayFontWeight: '400',
+    textMonthFontWeight: '600',
+    textDayHeaderFontWeight: '600',
+    textDayFontSize: 16,
+    textMonthFontSize: 18,
+    textDayHeaderFontSize: 14,
+  };
+
   return (
     <View style={{ backgroundColor: '#121212', flex: 1 }}>
       <View style={{ paddingTop: 40, paddingBottom: 16, paddingHorizontal: 16 }}>
         <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>History</Text>
       </View>
       
-      {history.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-          <Text style={{ color: '#E5E5E5', fontSize: 16, textAlign: 'center' }}>
-            No workouts yet. Start your first workout to see it here!
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={history}
-          renderItem={renderWorkoutItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 20 }}
+      {/* Calendar Section */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <Calendar
+          onDayPress={handleDayPress}
+          markedDates={markedDates}
+          theme={calendarTheme}
+          style={{
+            borderRadius: 12,
+            backgroundColor: '#1e1e1e',
+            padding: 8,
+          }}
         />
-      )}
+      </View>
+
+      {/* Workouts for Selected Date */}
+      <View style={{ flex: 1 }}>
+        {filteredWorkouts.length === 0 ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+            <Text style={{ color: '#E5E5E5', fontSize: 16, textAlign: 'center' }}>
+              {history.length === 0
+                ? 'No workouts yet. Start your first workout to see it here!'
+                : `No workouts logged for ${selectedDate ? formatDateString(selectedDate) : 'this date'}.`}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredWorkouts}
+            renderItem={renderWorkoutItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          />
+        )}
+      </View>
     </View>
   );
 }
