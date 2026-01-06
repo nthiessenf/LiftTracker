@@ -69,28 +69,21 @@ function RootLayoutNav() {
 
   const checkOnboarding = async () => {
     try {
-      const hasLaunched = await AsyncStorage.getItem('HAS_LAUNCHED');
-      const needsOnboardingValue = !hasLaunched;
+      const hasCompletedOnboarding = await AsyncStorage.getItem('HAS_COMPLETED_ONBOARDING');
+      const needsOnboardingValue = hasCompletedOnboarding !== 'true';
       setNeedsOnboarding(needsOnboardingValue);
       setIsInitialized(true);
       return needsOnboardingValue;
     } catch (error) {
       console.error('Error checking onboarding status:', error);
       setIsInitialized(true);
-      return false;
+      return true; // Default to showing onboarding on error
     }
   };
 
-  // Initial check on mount
+  // Initial check on mount - wait for AsyncStorage before rendering
   useEffect(() => {
-    const resetAndCheck = async () => {
-      // TEMPORARY: Remove this line after testing onboarding reset
-      await AsyncStorage.removeItem('HAS_LAUNCHED');
-      
-      checkOnboarding();
-    };
-    
-    resetAndCheck();
+    checkOnboarding();
   }, []);
 
   // Re-check onboarding status when segments change (especially when navigating from onboarding)

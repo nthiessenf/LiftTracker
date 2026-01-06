@@ -21,8 +21,8 @@ export default function OnboardingScreen() {
       // Seed the database with the selected track
       await seedDatabaseWithTrack(db, trackKey);
 
-      // Mark app as launched
-      await AsyncStorage.setItem('HAS_LAUNCHED', 'true');
+      // Mark onboarding as completed
+      await AsyncStorage.setItem('HAS_COMPLETED_ONBOARDING', 'true');
 
       // Navigate to tabs (replace so they can't go back)
       router.replace('/(tabs)');
@@ -39,8 +39,8 @@ export default function OnboardingScreen() {
     try {
       setLoading(true);
 
-      // Mark app as launched (do NOT seed database)
-      await AsyncStorage.setItem('HAS_LAUNCHED', 'true');
+      // Mark onboarding as completed (do NOT seed database)
+      await AsyncStorage.setItem('HAS_COMPLETED_ONBOARDING', 'true');
 
       // Navigate to tabs (replace so they can't go back)
       router.replace('/(tabs)');
