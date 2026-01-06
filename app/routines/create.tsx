@@ -1,4 +1,5 @@
 import { EXERCISES, Exercise } from '@/data/exercises';
+import { ROUTINE_TEMPLATES, RoutineTemplate } from '@/data/templates';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
@@ -17,6 +18,42 @@ export default function CreateRoutineScreen() {
         return [...prev, exerciseId];
       }
     });
+  };
+
+  const handleImportTemplate = async (template: RoutineTemplate) => {
+    try {
+      const routineId = Date.now().toString();
+      const now = new Date().toISOString();
+
+      await db.withTransactionAsync(async () => {
+        // Step A: Insert the Routine
+        await db.runAsync(
+          'INSERT INTO routines (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+          [routineId, template.name, now, now]
+        );
+
+        // Step B: Loop through template's exercises and insert into routine_exercises
+        for (let i = 0; i < template.exerciseIds.length; i++) {
+          const exerciseId = template.exerciseIds[i];
+          const routineExerciseId = `${Date.now()}-${i}-${Math.random()}`;
+          
+          await db.runAsync(
+            'INSERT INTO routine_exercises (id, routine_id, exercise_id, order_index) VALUES (?, ?, ?, ?)',
+            [routineExerciseId, routineId, exerciseId, i]
+          );
+        }
+      });
+
+      Alert.alert('Success', `${template.name} routine created successfully!`, [
+        {
+          text: 'OK',
+          onPress: () => router.push('/(tabs)/workouts'),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to import template. Please try again.');
+      console.error('Error importing template:', error);
+    }
   };
 
   const handleSave = async () => {
@@ -129,6 +166,67 @@ export default function CreateRoutineScreen() {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+        {/* Start from Template Section */}
+        <View style={{ paddingVertical: 16 }}>
+          <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
+              Start from Template
+            </Text>
+            <Text style={{ color: '#999', fontSize: 14 }}>
+              Quick add pre-built routines
+            </Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}>
+            {ROUTINE_TEMPLATES.map((template) => (
+              <Pressable
+                key={template.id}
+                onPress={() => handleImportTemplate(template)}
+                style={{
+                  backgroundColor: '#1e1e1e',
+                  padding: 16,
+                  borderRadius: 12,
+                  marginRight: 12,
+                  borderWidth: 1,
+                  borderColor: '#2a2a2a',
+                  minWidth: 160,
+                }}>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+                  {template.name}
+                </Text>
+                <Text style={{ color: '#999', fontSize: 12, marginBottom: 8 }}>
+                  {template.description}
+                </Text>
+                <Text style={{ color: '#10b981', fontSize: 12 }}>
+                  {template.exerciseIds.length} exercises
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Divider */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: '#2a2a2a',
+            marginHorizontal: 16,
+            marginVertical: 16,
+          }}
+        />
+
+        {/* Or Create Custom Section */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
+            Or Create Custom
+          </Text>
+          <Text style={{ color: '#999', fontSize: 14 }}>
+            Build your own routine from scratch
+          </Text>
+        </View>
+
         {/* Routine Name Input */}
         <View style={{ padding: 16 }}>
           <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
@@ -148,7 +246,6 @@ export default function CreateRoutineScreen() {
             placeholderTextColor="#999"
             value={routineName}
             onChangeText={setRoutineName}
-            autoFocus
           />
         </View>
 

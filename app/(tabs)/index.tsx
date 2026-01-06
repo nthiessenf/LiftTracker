@@ -29,6 +29,7 @@ export default function DashboardScreen() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
+  const [hasRoutines, setHasRoutines] = useState(false);
 
   const getCurrentWeekDays = (): Date[] => {
     const today = new Date();
@@ -176,6 +177,9 @@ export default function DashboardScreen() {
         'SELECT id, name FROM routines ORDER BY id ASC'
       );
 
+      // Track if routines exist for empty state
+      setHasRoutines(allRoutines.length > 0);
+
       if (allRoutines.length === 0) {
         setNextWorkout(null);
       } else {
@@ -199,27 +203,33 @@ export default function DashboardScreen() {
         }
         // If no routine_id (legacy data), keep default (index 0)
 
-        const nextRoutine = allRoutines[nextRoutineIndex];
+        // Safety check: ensure nextRoutineIndex is valid
+        if (nextRoutineIndex >= 0 && nextRoutineIndex < allRoutines.length) {
+          const nextRoutine = allRoutines[nextRoutineIndex];
 
-        // Get exercise IDs for the next routine
-        const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
-          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
-          [nextRoutine.id]
-        );
+          // Get exercise IDs for the next routine
+          const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+            'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+            [nextRoutine.id]
+          );
 
-        const exerciseIds = routineExercises.map((row) => row.exercise_id);
+          const exerciseIds = routineExercises.map((row) => row.exercise_id);
 
-        setNextWorkout({
-          id: nextRoutine.id,
-          name: nextRoutine.name,
-          exerciseIds: exerciseIds,
-        });
+          setNextWorkout({
+            id: nextRoutine.id,
+            name: nextRoutine.name,
+            exerciseIds: exerciseIds,
+          });
+        } else {
+          setNextWorkout(null);
+        }
       }
     } catch (error) {
       console.error('Error loading weekly progress:', error);
       setWeeklyProgress([]);
       setWorkoutCount(0);
       setNextWorkout(null);
+      setHasRoutines(false);
     }
   }, [db]);
 
@@ -499,8 +509,8 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* Up Next Card */}
-        {nextWorkout && (
+        {/* Up Next Card or Empty State */}
+        {nextWorkout ? (
           <View
             style={{
               backgroundColor: '#1e1e1e',
@@ -527,7 +537,37 @@ export default function DashboardScreen() {
               <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Start Now</Text>
             </Pressable>
           </View>
-        )}
+        ) : !hasRoutines ? (
+          <View
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 20,
+              borderRadius: 12,
+              marginBottom: 32,
+              marginHorizontal: 32,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              minWidth: 320,
+            }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' }}>
+              Get Started
+            </Text>
+            <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>
+              Create your first routine to start tracking your workouts
+            </Text>
+            <Pressable
+              onPress={() => router.push('/routines/create')}
+              style={{
+                backgroundColor: '#10b981',
+                paddingHorizontal: 24,
+                paddingVertical: 12,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Create Routine</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ScrollView>
 
       {/* Start Button at Bottom */}
