@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 type SetData = {
   id: string;
@@ -443,8 +443,16 @@ export default function WorkoutDetailScreen() {
           ),
         }}
       />
-      <ScrollView style={{ backgroundColor: '#121212', flex: 1 }}>
-        {/* Workout Summary Card */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={100}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            style={{ backgroundColor: '#121212', flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            keyboardShouldPersistTaps="handled">
+            {/* Workout Summary Card */}
         <View
           style={{
             backgroundColor: '#1e1e1e',
@@ -677,7 +685,9 @@ export default function WorkoutDetailScreen() {
             </Pressable>
           </View>
         )}
-      </ScrollView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
 
       {/* Exercise Picker Modal */}
       <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
