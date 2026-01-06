@@ -1,5 +1,6 @@
 import { EXERCISES, Exercise } from '@/data/exercises';
 import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -17,34 +18,30 @@ export default function LibraryScreen() {
     return matchesSearch && matchesMuscleGroup;
   });
 
-  const handleExercisePress = (exercise: Exercise) => {
-    console.log('Exercise selected:', exercise.name, exercise.id);
-    // TODO: Navigate to exercise detail view
-  };
-
   const renderExerciseItem = ({ item }: { item: Exercise }) => {
     return (
-      <Pressable
-        onPress={() => handleExercisePress(item)}
-        style={{
-          backgroundColor: '#1e1e1e',
-          padding: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-        }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
-              {item.name}
-            </Text>
-            <Text style={{ color: '#999', fontSize: 14 }}>{item.muscleGroup}</Text>
+      <Link href={`/library/${item.id}`} asChild>
+        <Pressable
+          style={{
+            backgroundColor: '#1e1e1e',
+            padding: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#2a2a2a',
+          }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 4 }}>
+                {item.name}
+              </Text>
+              <Text style={{ color: '#999', fontSize: 14 }}>{item.muscleGroup}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#71717a" />
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#71717a" />
-        </View>
-      </Pressable>
+        </Pressable>
+      </Link>
     );
   };
 
