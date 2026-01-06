@@ -1,5 +1,6 @@
-import { exportDatabaseToJson } from '@/data/services/backupService';
+import { exportDatabaseToJson, importDatabaseFromJson } from '@/data/services/backupService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -32,6 +33,38 @@ export default function SettingsScreen() {
       console.error('Export error:', error);
       Alert.alert('Error', 'Failed to export data. Please try again.');
     }
+  };
+
+  const handleRestoreData = () => {
+    Alert.alert(
+      'Restore Data',
+      'This will overwrite your current data. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await importDatabaseFromJson(db);
+              Alert.alert('Success', 'Data restored successfully!', [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    // Navigate to dashboard to see updated data
+                    router.push('/(tabs)');
+                  },
+                },
+              ]);
+            } catch (error: any) {
+              console.error('Restore error:', error);
+              const errorMessage = error?.message || 'Failed to restore data. Please try again.';
+              Alert.alert('Error', errorMessage);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSaveRestTimer = async () => {
@@ -77,9 +110,23 @@ export default function SettingsScreen() {
               paddingVertical: 16,
               borderRadius: 8,
               alignItems: 'center',
+              marginBottom: 12,
             }}>
             <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
               Export Data (Backup)
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={handleRestoreData}
+            style={{
+              backgroundColor: '#ef4444',
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderRadius: 8,
+              alignItems: 'center',
+            }}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
+              Restore Data
             </Text>
           </Pressable>
         </View>
