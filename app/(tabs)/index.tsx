@@ -239,10 +239,6 @@ export default function DashboardScreen() {
     }, [loadWeeklyProgress])
   );
 
-  const handleStartWorkout = () => {
-    router.push('/session/active');
-  };
-
   const handleStartNextWorkout = () => {
     if (nextWorkout) {
       router.push({
@@ -420,7 +416,7 @@ export default function DashboardScreen() {
           paddingTop: 40,
           paddingBottom: 20,
         }}>
-        <Text style={{ color: 'white', fontSize: 48, fontWeight: 'bold', marginBottom: 32 }}>LiftTrack</Text>
+        <Text style={{ color: 'white', fontSize: 48, fontWeight: 'bold', marginBottom: 48 }}>LiftTrack</Text>
 
         {/* Weekly Goal Ring */}
         <WeeklyGoalRing
@@ -436,7 +432,8 @@ export default function DashboardScreen() {
             backgroundColor: '#1e1e1e',
             padding: 20,
             borderRadius: 12,
-            marginBottom: 32,
+            marginTop: 16,
+            marginBottom: 48,
             marginHorizontal: 32,
             borderWidth: 1,
             borderColor: '#2a2a2a',
@@ -509,87 +506,119 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* Up Next Card or Empty State */}
-        {nextWorkout ? (
-          <View
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: 20,
-              borderRadius: 12,
-              marginBottom: 32,
-              marginHorizontal: 32,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              minWidth: 320,
-            }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 12, textAlign: 'center' }}>
-              Up Next: {nextWorkout.name}
-            </Text>
-            <Pressable
-              onPress={handleStartNextWorkout}
-              style={{
-                backgroundColor: '#10b981',
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}>
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Start Now</Text>
-            </Pressable>
-          </View>
-        ) : !hasRoutines ? (
-          <View
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: 20,
-              borderRadius: 12,
-              marginBottom: 32,
-              marginHorizontal: 32,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              minWidth: 320,
-            }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center' }}>
-              Get Started
-            </Text>
-            <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>
-              Create your first routine to start tracking your workouts
-            </Text>
-            <Pressable
-              onPress={() => router.push('/routines/create')}
-              style={{
-                backgroundColor: '#10b981',
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}>
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Create Routine</Text>
-            </Pressable>
-          </View>
-        ) : null}
       </ScrollView>
 
-      {/* Start Button at Bottom */}
+      {/* Action Card - Up Next or Empty State */}
       <View
         style={{
           paddingHorizontal: 32,
           paddingBottom: 32,
-          paddingTop: 16,
+          paddingTop: 24,
           borderTopWidth: 1,
           borderTopColor: '#2a2a2a',
         }}>
-        <Pressable
-          onPress={handleStartWorkout}
-          style={{
-            backgroundColor: '#10b981',
-            paddingHorizontal: 32,
-            paddingVertical: 16,
-            borderRadius: 12,
-            alignItems: 'center',
-          }}>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Start Empty Workout</Text>
-        </Pressable>
+        {nextWorkout ? (
+          <Pressable
+            onPress={handleStartNextWorkout}
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 20,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: '#999',
+                  fontSize: 11,
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}>
+                RECOMMENDED FOR TODAY
+              </Text>
+              <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>
+                {nextWorkout.name}
+              </Text>
+            </View>
+            <View
+              style={{
+                marginLeft: 16,
+              }}>
+              <Pressable
+                onPress={handleStartNextWorkout}
+                style={{
+                  backgroundColor: '#10b981',
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
+                  Start
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        ) : !hasRoutines ? (
+          <Pressable
+            onPress={() => router.push('/routines/create')}
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 20,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 2,
+            }}>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: '#999',
+                  fontSize: 11,
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: 6,
+                }}>
+                GET STARTED
+              </Text>
+              <Text style={{ color: 'white', fontSize: 22, fontWeight: 'bold' }}>
+                Create your first routine
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: 16,
+              }}>
+              <FontAwesome name="plus-circle" size={32} color="#10b981" />
+            </View>
+          </Pressable>
+        ) : null}
       </View>
     </View>
     </>
