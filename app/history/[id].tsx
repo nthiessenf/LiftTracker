@@ -1,10 +1,10 @@
 import { deleteSet, deleteWorkout, updateSet, updateWorkoutDetails } from '@/data/database/db';
-import { EXERCISES } from '@/data/exercises';
+import { EXERCISES, Exercise } from '@/data/exercises';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 type SetData = {
   id: string;
@@ -35,6 +35,7 @@ export default function WorkoutDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
 
   const loadWorkout = useCallback(async () => {
     if (!id) return;
@@ -307,6 +308,92 @@ export default function WorkoutDetailScreen() {
     ]);
   };
 
+  const handleAddSet = async (exerciseId: string) => {
+    if (!id) {
+      Alert.alert('Error', 'Workout ID not found.');
+      return;
+    }
+
+    try {
+      // Find the exercise group to get the last set's values (if any)
+      const exerciseGroup = exerciseGroups.find((g) => g.exerciseId === exerciseId);
+      const lastSet = exerciseGroup?.sets[exerciseGroup.sets.length - 1];
+
+      // Use the last set's values as defaults, or 0 if no sets exist
+      const defaultWeight = lastSet?.weight ?? 0;
+      const defaultReps = lastSet?.reps ?? 0;
+
+      // Generate a unique ID for the new set
+      const setId = Date.now().toString();
+      const timestamp = new Date().toISOString();
+
+      // Insert the new set into the database
+      await db.runAsync(
+        'INSERT INTO sets (id, workout_id, exercise_id, weight, reps, completed, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [setId, id, exerciseId, defaultWeight, defaultReps, 1, timestamp]
+      );
+
+      // Refresh the workout data to show the new set
+      await loadWorkout();
+    } catch (error) {
+      console.error('Error adding set:', error);
+      Alert.alert('Error', 'Failed to add set. Please try again.');
+    }
+  };
+
+  const handleAddExercise = () => {
+    setShowExerciseModal(true);
+  };
+
+  const handleSelectExercise = async (exercise: Exercise) => {
+    if (!id) {
+      Alert.alert('Error', 'Workout ID not found.');
+      return;
+    }
+
+    try {
+      // Generate a unique ID for the new set
+      const setId = Date.now().toString();
+      const timestamp = new Date().toISOString();
+
+      // Insert a starter set into the database
+      await db.runAsync(
+        'INSERT INTO sets (id, workout_id, exercise_id, weight, reps, completed, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [setId, id, exercise.id, 0, 0, 1, timestamp]
+      );
+
+      // Close the modal
+      setShowExerciseModal(false);
+
+      // Refresh the workout data to show the new exercise
+      await loadWorkout();
+
+      Alert.alert('Success', `${exercise.name} added to workout.`);
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      Alert.alert('Error', 'Failed to add exercise. Please try again.');
+    }
+  };
+
+  const renderExerciseItem = ({ item }: { item: Exercise }) => {
+    return (
+      <Pressable
+        onPress={() => handleSelectExercise(item)}
+        style={{
+          backgroundColor: '#1e1e1e',
+          padding: 16,
+          marginHorizontal: 16,
+          marginVertical: 8,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#2a2a2a',
+        }}>
+        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
+        <Text style={{ color: '#E5E5E5', fontSize: 14, marginTop: 4 }}>{item.muscleGroup}</Text>
+      </Pressable>
+    );
+  };
+
   if (loading) {
     return (
       <View style={{ backgroundColor: '#121212', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -528,12 +615,49 @@ export default function WorkoutDetailScreen() {
                 )}
               </View>
             ))}
+            {/* Add Set Button (only visible when editing) */}
+            {isEditing && (
+              <Pressable
+                onPress={() => handleAddSet(group.exerciseId)}
+                style={{
+                  marginTop: 12,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#10b981',
+                  borderStyle: 'dashed',
+                  alignItems: 'center',
+                }}>
+                <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>+ Add Set</Text>
+              </Pressable>
+            )}
           </View>
         ))}
 
-        {exerciseGroups.length === 0 && (
+        {exerciseGroups.length === 0 && !isEditing && (
           <View style={{ padding: 32, alignItems: 'center' }}>
             <Text style={{ color: '#666', fontSize: 14 }}>No exercises recorded for this workout</Text>
+          </View>
+        )}
+
+        {/* Add Exercise Button (only visible when editing) */}
+        {isEditing && (
+          <View style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
+            <Pressable
+              onPress={handleAddExercise}
+              style={{
+                backgroundColor: '#1e1e1e',
+                paddingHorizontal: 32,
+                paddingVertical: 16,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: '#10b981',
+                borderStyle: 'dashed',
+                alignItems: 'center',
+              }}>
+              <Text style={{ color: '#10b981', fontSize: 18, fontWeight: '600' }}>+ Add Exercise</Text>
+            </Pressable>
           </View>
         )}
 
@@ -554,6 +678,35 @@ export default function WorkoutDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Exercise Picker Modal */}
+      <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#2a2a2a',
+              }}>
+              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Select Exercise</Text>
+              <Pressable onPress={() => setShowExerciseModal(false)}>
+                <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>Close</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={EXERCISES}
+              renderItem={renderExerciseItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingVertical: 8 }}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
