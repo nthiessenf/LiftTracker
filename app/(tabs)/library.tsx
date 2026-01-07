@@ -77,6 +77,9 @@ export default function LibraryScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{
+          marginBottom: 24,
+        }}
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingBottom: 16,
