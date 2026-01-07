@@ -90,17 +90,21 @@ export default function LibraryScreen() {
               style={{
                 backgroundColor: isSelected ? '#10b981' : '#1e1e1e',
                 paddingHorizontal: 20,
-                paddingVertical: 8,
+                paddingVertical: 12,
                 borderRadius: 20,
                 marginRight: 8,
                 borderWidth: 1,
                 borderColor: isSelected ? '#10b981' : '#2a2a2a',
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
               <Text
                 style={{
                   color: isSelected ? 'white' : '#999',
                   fontSize: 14,
                   fontWeight: isSelected ? '600' : '400',
+                  textAlign: 'center',
                 }}>
                 {group}
               </Text>
