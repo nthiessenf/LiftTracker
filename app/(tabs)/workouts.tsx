@@ -1,3 +1,4 @@
+import { getRoutineDurationEstimate } from '@/data/database/db';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -9,6 +10,7 @@ type Routine = {
   name: string;
   exerciseIds: string[];
   lastPerformed: string | null;
+  estimatedDuration: number; // in seconds
 };
 
 export default function WorkoutsScreen() {
@@ -22,7 +24,7 @@ export default function WorkoutsScreen() {
         'SELECT id, name FROM routines ORDER BY created_at DESC'
       );
 
-      // For each routine, fetch associated exercise IDs and last performed date
+      // For each routine, fetch associated exercise IDs, last performed date, and estimated duration
       const routinesWithExercises: Routine[] = await Promise.all(
         routines.map(async (routine) => {
           const exerciseRows = await db.getAllAsync<{ exercise_id: string }>(
@@ -36,11 +38,15 @@ export default function WorkoutsScreen() {
             [routine.name]
           );
           
+          // Get estimated duration
+          const estimatedDuration = await getRoutineDurationEstimate(db, routine.id);
+          
           return {
             id: routine.id,
             name: routine.name,
             exerciseIds: exerciseRows.map((row) => row.exercise_id),
             lastPerformed: lastWorkout?.date || null,
+            estimatedDuration,
           };
         })
       );
@@ -213,6 +219,21 @@ export default function WorkoutsScreen() {
     }
   };
 
+  const formatDuration = (seconds: number): string => {
+    if (seconds === 0) return '';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      if (minutes > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      return `${hours}h`;
+    }
+    return `${minutes}m`;
+  };
+
   const handleCardPress = (routineId: string) => {
     router.push(`/routines/detail/${routineId}`);
   };
@@ -242,9 +263,20 @@ export default function WorkoutsScreen() {
           <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
             {item.name}
           </Text>
-          <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-            Last: {lastPerformedText}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
+              Last: {lastPerformedText}
+            </Text>
+            {item.estimatedDuration > 0 && (
+              <>
+                <Text style={{ color: '#a1a1aa', fontSize: 14, marginHorizontal: 6 }}>•</Text>
+                <Ionicons name="time-outline" size={14} color="#a1a1aa" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
+                  {formatDuration(item.estimatedDuration)}
+                </Text>
+              </>
+            )}
+          </View>
         </View>
 
         {/* RIGHT SIDE: Actions */}

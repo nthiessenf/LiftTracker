@@ -187,3 +187,39 @@ export async function seedDatabaseWithTrack(db: SQLiteDatabase, trackKey: string
   }
 }
 
+/**
+ * Estimates the duration of a routine in seconds.
+ * First checks historical workout data for average duration.
+ * Falls back to estimating based on exercise count (5 minutes per exercise).
+ */
+export async function getRoutineDurationEstimate(
+  db: SQLiteDatabase,
+  routineId: string
+): Promise<number> {
+  try {
+    // Step 1: Check history - get average duration from workouts
+    const historyResult = await db.getFirstAsync<{ avg_time: number | null }>(
+      'SELECT AVG(duration_seconds) as avg_time FROM workouts WHERE routine_id = ?',
+      [routineId]
+    );
+
+    // If we have historical data and it's valid, return it
+    if (historyResult && historyResult.avg_time !== null && historyResult.avg_time > 0) {
+      return Math.round(historyResult.avg_time);
+    }
+
+    // Step 2: Fallback - count exercises and estimate 5 minutes per exercise
+    const exerciseCountResult = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM routine_exercises WHERE routine_id = ?',
+      [routineId]
+    );
+
+    const exerciseCount = exerciseCountResult?.count || 0;
+    return exerciseCount * 300; // 300 seconds = 5 minutes per exercise
+  } catch (error) {
+    console.error('Error getting routine duration estimate:', error);
+    // Return a safe default if there's an error
+    return 0;
+  }
+}
+
