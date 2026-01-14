@@ -425,8 +425,8 @@ export default function DashboardScreen() {
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
-            paddingTop: 20,
-            paddingBottom: 40,
+            paddingTop: 60,
+            paddingBottom: 24,
           }}>
         <Text style={{ 
           color: '#10b981', 
@@ -451,7 +451,7 @@ export default function DashboardScreen() {
         </Text>
 
         {/* Weekly Goal Ring */}
-        <Card variant="default" style={{ marginHorizontal: 24, marginBottom: 16 }}>
+        <Card variant="default" style={{ marginHorizontal: 24, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ marginRight: 24 }}>
               <WeeklyGoalRing
@@ -489,7 +489,7 @@ export default function DashboardScreen() {
         </Card>
 
         {/* Weekly Progress Card */}
-        <Card style={{ marginHorizontal: 24, marginBottom: 16 }}>
+        <Card style={{ marginHorizontal: 24, marginBottom: 24 }}>
           <Text style={{ 
             color: '#FFFFFF', 
             fontSize: 16, 
@@ -585,7 +585,7 @@ export default function DashboardScreen() {
 
         {/* Recommended for Today Card */}
         {nextWorkout ? (
-          <Card variant="accent" style={{ marginHorizontal: 24 }}>
+          <Card variant="accent" style={{ marginHorizontal: 24, marginTop: 16 }}>
             <Text style={{ 
               color: '#10b981', 
               fontSize: 12, 
