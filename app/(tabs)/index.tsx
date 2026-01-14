@@ -6,6 +6,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { CardStyles, Spacing, Typography } from '@/constants/Typography';
+import { Card, Button } from '../../components/ui';
 
 type WorkoutSession = {
   id: string;
@@ -524,48 +525,37 @@ export default function DashboardScreen() {
           borderTopColor: '#2a2a2a',
         }}>
         {nextWorkout ? (
-          <Pressable
-            onPress={handleStartNextWorkout}
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: 16,
-              marginHorizontal: 16,
-              marginBottom: 12,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+          <Card variant="accent" style={{ marginHorizontal: 24, marginTop: 24 }}>
+            <Text style={{ 
+              color: '#10b981', 
+              fontSize: 12, 
+              fontWeight: '600',
+              letterSpacing: 1,
+              marginBottom: 8,
+              textTransform: 'uppercase'
             }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
-                RECOMMENDED FOR TODAY
-              </Text>
-              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.5, color: '#FFFFFF' }}>
-                {nextWorkout.name}
-              </Text>
-            </View>
-            <View
-              style={{
-                marginLeft: 16,
-              }}>
-              <Pressable
-                onPress={handleStartNextWorkout}
-                style={{
-                  backgroundColor: '#10b981',
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+              RECOMMENDED FOR TODAY
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ 
+                  color: '#FFFFFF', 
+                  fontSize: 22, 
+                  fontWeight: '700',
+                  marginBottom: 4
                 }}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
-                  Start
+                  {nextWorkout.name}
                 </Text>
-              </Pressable>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                  {nextWorkout.exerciseIds.length} {nextWorkout.exerciseIds.length === 1 ? 'exercise' : 'exercises'}
+                </Text>
+              </View>
+              <Button 
+                title="Start →" 
+                onPress={handleStartNextWorkout} 
+              />
             </View>
-          </Pressable>
+          </Card>
         ) : !hasRoutines ? (
           <Pressable
             onPress={() => router.push('/routines/create')}
