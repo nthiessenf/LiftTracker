@@ -16,37 +16,6 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'default',
   style 
 }) => {
-  const getButtonStyle = (pressed = false): ViewStyle => {
-    const isSmall = size === 'small';
-    
-    if (variant === 'primary') {
-      return {
-        backgroundColor: pressed ? '#059669' : 'red',
-        paddingHorizontal: isSmall ? 20 : 24,
-        paddingVertical: isSmall ? 10 : 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#10b981',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 6,
-      };
-    } else {
-      return {
-        backgroundColor: pressed ? 'rgba(16,185,129,0.15)' : 'transparent',
-        paddingHorizontal: isSmall ? 20 : 24,
-        paddingVertical: isSmall ? 10 : 14,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#10b981',
-        alignItems: 'center',
-        justifyContent: 'center',
-      };
-    }
-  };
-
   return (
     <Pressable 
       onPress={onPress}

@@ -338,20 +338,6 @@ export default function DashboardScreen() {
         }}
       />
       <View style={{ backgroundColor: '#121212', flex: 1 }}>
-      <Pressable 
-        onPress={() => router.push('/test-ui')}
-        style={{ 
-          backgroundColor: 'red', 
-          padding: 16, 
-          borderRadius: 8, 
-          marginBottom: 16,
-          marginHorizontal: 24 
-        }}
-      >
-        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-          🧪 TEST NEW UI COMPONENTS
-        </Text>
-      </Pressable>
       {/* Goal Edit Modal (Android fallback) */}
       <Modal
         visible={showGoalModal}
