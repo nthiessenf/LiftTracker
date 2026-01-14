@@ -1,3 +1,4 @@
+import { CardStyles } from '@/constants/Typography';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
@@ -209,18 +210,18 @@ export default function HistoryScreen() {
     return (
       <Pressable
         onPress={() => handleViewWorkout(item.id)}
-        style={{
-          backgroundColor: '#1e1e1e',
-          marginHorizontal: 16,
-          marginVertical: 8,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-          padding: 16,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
+        style={({ pressed }) => [
+          CardStyles.base,
+          {
+            marginHorizontal: 16,
+            marginVertical: 8,
+            padding: 16,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          },
+          pressed && CardStyles.pressed,
+        ]}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
             {item.name || 'Untitled Workout'}
@@ -278,17 +279,18 @@ export default function HistoryScreen() {
       
       {/* Calendar Section */}
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <Calendar
-          onDayPress={handleDayPress}
-          markedDates={markedDates}
-          markingType="custom"
-          theme={calendarTheme}
-          style={{
-            borderRadius: 12,
-            backgroundColor: '#1e1e1e',
-            padding: 8,
-          }}
-        />
+        <View style={[CardStyles.base, { padding: 8 }]}>
+          <Calendar
+            onDayPress={handleDayPress}
+            markedDates={markedDates}
+            markingType="custom"
+            theme={calendarTheme}
+            style={{
+              borderRadius: 12,
+              backgroundColor: 'transparent',
+            }}
+          />
+        </View>
       </View>
 
       {/* Workouts for Selected Date */}

@@ -1,4 +1,5 @@
 import { getRoutineDurationEstimate } from '@/data/database/db';
+import { CardStyles } from '@/constants/Typography';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -23,6 +24,7 @@ export default function WorkoutsScreen() {
       const routines = await db.getAllAsync<{ id: string; name: string }>(
         'SELECT id, name FROM routines ORDER BY created_at DESC'
       );
+      console.log('DEBUG - Routines found:', routines.length, routines);
 
       // For each routine, fetch associated exercise IDs, last performed date, and estimated duration
       const routinesWithExercises: Routine[] = await Promise.all(
@@ -243,21 +245,20 @@ export default function WorkoutsScreen() {
     const lastPerformedText = getDaysAgo(item.lastPerformed);
 
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={() => handleCardPress(item.id)}
-        activeOpacity={0.7}
-        style={{
-          backgroundColor: '#27272a', // bg-zinc-800
-          padding: 16, // p-4
-          marginBottom: 12, // mb-3
-          marginHorizontal: 16,
-          borderRadius: 12, // rounded-xl
-          flexDirection: 'row', // flex-row
-          alignItems: 'center', // items-center
-          justifyContent: 'space-between', // justify-between
-          borderWidth: 1,
-          borderColor: '#3f3f46', // border-zinc-700/50
-        }}>
+        style={({ pressed }) => [
+          CardStyles.base,
+          {
+            padding: 16,
+            marginBottom: 12,
+            marginHorizontal: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          },
+          pressed && CardStyles.pressed,
+        ]}>
         {/* LEFT SIDE: Text Info */}
         <View style={{ flex: 1, marginRight: 16 }}>
           <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
@@ -296,21 +297,25 @@ export default function WorkoutsScreen() {
           </TouchableOpacity>
 
           {/* Start Button: Rounded-lg to match templates (not full pill) */}
-          <TouchableOpacity
+          <Pressable
             onPress={(e) => {
               e.stopPropagation();
               handleStartRoutine(item);
             }}
-            style={{
-              backgroundColor: '#10b981', // bg-emerald-500
-              paddingHorizontal: 20, // px-5
-              paddingVertical: 8, // py-2
-              borderRadius: 8, // rounded-lg (changed from rounded-full)
-            }}>
+            style={({ pressed }) => [
+              {
+                backgroundColor: '#10b981',
+                paddingHorizontal: 20,
+                paddingVertical: 8,
+                borderRadius: 8,
+              },
+              CardStyles.buttonGlow,
+              pressed && CardStyles.pressed,
+            ]}>
             <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Start</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -323,19 +328,20 @@ export default function WorkoutsScreen() {
             {/* Hero Card: Start Empty Workout */}
             <Pressable
               onPress={handleQuickStart}
-              style={{
-                backgroundColor: '#18181b', // bg-zinc-900 (slightly darker than cards)
-                marginHorizontal: 16,
-                marginTop: 16,
-                marginBottom: 24, // mb-6
-                padding: 16, // p-4
-                borderRadius: 12, // rounded-xl
-                flexDirection: 'row', // flex-row
-                alignItems: 'center', // items-center
-                justifyContent: 'space-between', // justify-between
-                borderWidth: 1,
-                borderColor: '#10b981', // border-emerald-500 (50% opacity would be rgba(16, 185, 129, 0.5))
-              }}>
+              style={({ pressed }) => [
+                CardStyles.base,
+                {
+                  marginHorizontal: 16,
+                  marginTop: 16,
+                  marginBottom: 24,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderColor: 'rgba(16, 185, 129, 0.5)', // emerald with opacity
+                },
+                pressed && CardStyles.pressed,
+              ]}>
               {/* Left Side: Icon + Text */}
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <MaterialIcons name="add-circle" size={24} color="#10b981" />

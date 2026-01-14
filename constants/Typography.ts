@@ -79,3 +79,34 @@ export const Spacing = {
   elementGap: 16,
 } as const;
 
+/**
+ * Apple-inspired card design system
+ */
+export const CardStyles = {
+  // Base card style with gradient background and iOS shadow
+  base: {
+    backgroundColor: 'rgba(255,255,255,0.05)' as const,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)' as const,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8, // Android shadow
+  },
+  
+  // Pressed state style (for Pressable components)
+  pressed: {
+    transform: [{ scale: 0.98 }],
+  },
+  
+  // Button with inner glow effect
+  buttonGlow: {
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+} as const;
+

@@ -5,7 +5,7 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Spacing, Typography } from '@/constants/Typography';
+import { CardStyles, Spacing, Typography } from '@/constants/Typography';
 
 type WorkoutSession = {
   id: string;
@@ -177,6 +177,7 @@ export default function DashboardScreen() {
       const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
         'SELECT id, name FROM routines ORDER BY id ASC'
       );
+      console.log('DEBUG - Dashboard routines found:', allRoutines.length, allRoutines);
 
       // Track if routines exist for empty state
       setHasRoutines(allRoutines.length > 0);
@@ -350,18 +351,17 @@ export default function DashboardScreen() {
             alignItems: 'center',
           }}>
           <View
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: Spacing.cardPadding,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              minWidth: 280,
-            }}>
-            <Text style={[Typography.sectionHeader, { marginBottom: Spacing.elementGap }]}>
+            style={[
+              CardStyles.base,
+              {
+                padding: Spacing.cardPadding,
+                minWidth: 280,
+              },
+            ]}>
+            <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#FFFFFF', marginBottom: Spacing.elementGap }}>
               Edit Weekly Goal
             </Text>
-            <Text style={[Typography.body, { marginBottom: 12 }]}>
+            <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#E5E5E5', marginBottom: 12 }}>
               Enter your new weekly workout goal:
             </Text>
             <TextInput
@@ -393,7 +393,7 @@ export default function DashboardScreen() {
                   paddingVertical: 8,
                   marginRight: 12,
                 }}>
-                <Text style={Typography.body}>Cancel</Text>
+                <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#E5E5E5' }}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleSaveGoal}
@@ -403,7 +403,7 @@ export default function DashboardScreen() {
                   backgroundColor: '#10b981',
                   borderRadius: 8,
                 }}>
-                <Text style={[Typography.body, { fontFamily: 'Inter-SemiBold', fontWeight: '600', color: '#FFFFFF' }]}>Save</Text>
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#FFFFFF' }}>Save</Text>
               </Pressable>
             </View>
           </View>
@@ -417,7 +417,7 @@ export default function DashboardScreen() {
           paddingTop: 40,
           paddingBottom: 20,
         }}>
-        <Text style={[Typography.appTitle, { marginBottom: Spacing.sectionGap }]}>LiftTrack</Text>
+        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 36, letterSpacing: -1, color: '#FFFFFF', marginBottom: Spacing.sectionGap }}>LiftTrack</Text>
 
         {/* Weekly Goal Ring */}
         <WeeklyGoalRing
@@ -429,18 +429,17 @@ export default function DashboardScreen() {
 
         {/* Weekly Progress Card */}
         <View
-          style={{
-            backgroundColor: '#1e1e1e',
-            padding: Spacing.cardPadding,
-            borderRadius: 12,
-            marginTop: Spacing.elementGap,
-            marginBottom: Spacing.sectionGap,
-            marginHorizontal: Spacing.sectionGap,
-            borderWidth: 1,
-            borderColor: '#2a2a2a',
-            minWidth: 320,
-          }}>
-          <Text style={[Typography.sectionHeader, { marginBottom: Spacing.elementGap, textAlign: 'center' }]}>
+          style={[
+            CardStyles.base,
+            {
+              padding: Spacing.cardPadding,
+              marginTop: Spacing.elementGap,
+              marginBottom: Spacing.sectionGap,
+              marginHorizontal: Spacing.sectionGap,
+              minWidth: 320,
+            },
+          ]}>
+          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#FFFFFF', marginBottom: Spacing.elementGap, textAlign: 'center' }}>
             Weekly Progress
           </Text>
 
@@ -493,15 +492,11 @@ export default function DashboardScreen() {
                       marginBottom: 4,
                     }}
                   />
-                  <Text style={[
-                    Typography.bodyMetadata,
-                    {
+                  <Text style={{
+                      fontFamily: day.isToday ? 'Inter_600SemiBold' : 'Inter_400Regular',
                       fontSize: 10,
-                      fontFamily: day.isToday ? 'Inter-SemiBold' : 'Inter-Regular',
-                      fontWeight: day.isToday ? '600' : '400',
                       color: day.isToday ? '#10b981' : '#E5E5E5',
-                    }
-                  ]}>
+                    }}>
                     {getDayLabel(day.date)}
                   </Text>
                 </View>
@@ -510,7 +505,7 @@ export default function DashboardScreen() {
           </View>
 
           {/* Summary Text */}
-          <Text style={[Typography.bodyMetadata, { textAlign: 'center' }]}>
+          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#8E8E93', textAlign: 'center' }}>
             {workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'} this week
           </Text>
         </View>
@@ -529,26 +524,21 @@ export default function DashboardScreen() {
         {nextWorkout ? (
           <Pressable
             onPress={handleStartNextWorkout}
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: Spacing.cardPadding,
-              borderRadius: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }}>
+            style={({ pressed }) => [
+              CardStyles.base,
+              {
+                padding: Spacing.cardPadding,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+              pressed && CardStyles.pressed,
+            ]}>
             <View style={{ flex: 1 }}>
-              <Text style={[Typography.label, { marginBottom: 6 }]}>
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
                 RECOMMENDED FOR TODAY
               </Text>
-              <Text style={Typography.largeTitle}>
+              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.5, color: '#FFFFFF' }}>
                 {nextWorkout.name}
               </Text>
             </View>
@@ -558,15 +548,19 @@ export default function DashboardScreen() {
               }}>
               <Pressable
                 onPress={handleStartNextWorkout}
-                style={{
-                  backgroundColor: '#10b981',
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: 20,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Text style={[Typography.body, { fontFamily: 'Inter-SemiBold', fontWeight: '600', color: '#FFFFFF' }]}>
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: '#10b981',
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                  CardStyles.buttonGlow,
+                  pressed && CardStyles.pressed,
+                ]}>
+                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#FFFFFF' }}>
                   Start
                 </Text>
               </Pressable>
@@ -575,26 +569,21 @@ export default function DashboardScreen() {
         ) : !hasRoutines ? (
           <Pressable
             onPress={() => router.push('/routines/create')}
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: Spacing.cardPadding,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 2,
-            }}>
+            style={({ pressed }) => [
+              CardStyles.base,
+              {
+                padding: Spacing.cardPadding,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              },
+              pressed && CardStyles.pressed,
+            ]}>
             <View style={{ flex: 1 }}>
-              <Text style={[Typography.label, { marginBottom: 6 }]}>
+              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
                 GET STARTED
               </Text>
-              <Text style={Typography.largeTitle}>
+              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.5, color: '#FFFFFF' }}>
                 Create your first routine
               </Text>
             </View>
