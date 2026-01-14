@@ -1,6 +1,43 @@
 import { TRAINING_TRACKS } from '@/data/tracks';
 import { SQLiteDatabase } from 'expo-sqlite';
 
+/**
+ * Helper function to check if a column exists in a table
+ * Makes migrations idempotent by checking before adding columns
+ */
+async function columnExists(
+  db: SQLiteDatabase,
+  tableName: string,
+  columnName: string
+): Promise<boolean> {
+  try {
+    const result = await db.getAllAsync<{ name: string }>(
+      `PRAGMA table_info(${tableName})`
+    );
+    return result.some((col) => col.name === columnName);
+  } catch (error) {
+    console.error(`Error checking column ${columnName} in ${tableName}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Helper function to safely add a column if it doesn't exist
+ */
+async function addColumnIfNotExists(
+  db: SQLiteDatabase,
+  tableName: string,
+  columnName: string,
+  columnDefinition: string
+): Promise<void> {
+  const exists = await columnExists(db, tableName, columnName);
+  if (!exists) {
+    await db.execAsync(
+      `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`
+    );
+  }
+}
+
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   try {
     // Check current database version
@@ -15,7 +52,8 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL
+          updated_at TEXT NOT NULL,
+          is_temporary INTEGER DEFAULT 0
         );
       `);
 
@@ -65,15 +103,22 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       await db.execAsync('PRAGMA user_version = 1;');
     }
 
-    // Migration 2: Add routine_id column to workouts table
+    // Migration 2: Add routine_id column to workouts table (idempotent)
+    // This migration is safe to run multiple times - checks if column exists first
     if (currentVersion < 2) {
-      await db.execAsync(`
-        ALTER TABLE workouts ADD COLUMN routine_id TEXT;
-      `);
+      await addColumnIfNotExists(db, 'workouts', 'routine_id', 'TEXT');
 
       // Set database version
       await db.execAsync('PRAGMA user_version = 2;');
+    } else {
+      // Even if version is >= 2, ensure the column exists (handles partially migrated databases)
+      await addColumnIfNotExists(db, 'workouts', 'routine_id', 'TEXT');
     }
+
+    // Migration 3: Add is_temporary column to routines table (idempotent)
+    // This ensures existing databases get the is_temporary column
+    // Safe to run even if column already exists
+    await addColumnIfNotExists(db, 'routines', 'is_temporary', 'INTEGER DEFAULT 0');
   } catch (error) {
     console.error('Database migration error:', error);
     throw error;
