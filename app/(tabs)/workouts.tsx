@@ -247,18 +247,18 @@ export default function WorkoutsScreen() {
     return (
       <Pressable
         onPress={() => handleCardPress(item.id)}
-        style={({ pressed }) => [
-          CardStyles.base,
-          {
-            padding: 16,
-            marginBottom: 12,
-            marginHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          },
-          pressed && CardStyles.pressed,
-        ]}>
+        style={{
+          backgroundColor: '#1e1e1e',
+          padding: 16,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: '#2a2a2a',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
         {/* LEFT SIDE: Text Info */}
         <View style={{ flex: 1, marginRight: 16 }}>
           <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
@@ -291,27 +291,25 @@ export default function WorkoutsScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={{
               padding: 8,
-              marginRight: 8, // mr-2
+              marginRight: 8,
             }}>
             <MaterialIcons name="more-horiz" size={20} color="#71717a" />
           </TouchableOpacity>
 
-          {/* Start Button: Rounded-lg to match templates (not full pill) */}
+          {/* Start Button */}
           <Pressable
             onPress={(e) => {
               e.stopPropagation();
               handleStartRoutine(item);
             }}
-            style={({ pressed }) => [
-              {
-                backgroundColor: '#10b981',
-                paddingHorizontal: 20,
-                paddingVertical: 8,
-                borderRadius: 8,
-              },
-              CardStyles.buttonGlow,
-              pressed && CardStyles.pressed,
-            ]}>
+            style={{
+              backgroundColor: '#10b981',
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
             <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Start</Text>
           </Pressable>
         </View>
@@ -328,20 +326,19 @@ export default function WorkoutsScreen() {
             {/* Hero Card: Start Empty Workout */}
             <Pressable
               onPress={handleQuickStart}
-              style={({ pressed }) => [
-                CardStyles.base,
-                {
-                  marginHorizontal: 16,
-                  marginTop: 16,
-                  marginBottom: 24,
-                  padding: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderColor: 'rgba(16, 185, 129, 0.5)', // emerald with opacity
-                },
-                pressed && CardStyles.pressed,
-              ]}>
+              style={{
+                backgroundColor: '#1e1e1e',
+                padding: 16,
+                marginHorizontal: 16,
+                marginTop: 16,
+                marginBottom: 24,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#2a2a2a',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
               {/* Left Side: Icon + Text */}
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <MaterialIcons name="add-circle" size={24} color="#10b981" />

@@ -351,13 +351,14 @@ export default function DashboardScreen() {
             alignItems: 'center',
           }}>
           <View
-            style={[
-              CardStyles.base,
-              {
-                padding: Spacing.cardPadding,
-                minWidth: 280,
-              },
-            ]}>
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 16,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              minWidth: 280,
+            }}>
             <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#FFFFFF', marginBottom: Spacing.elementGap }}>
               Edit Weekly Goal
             </Text>
@@ -429,16 +430,16 @@ export default function DashboardScreen() {
 
         {/* Weekly Progress Card */}
         <View
-          style={[
-            CardStyles.base,
-            {
-              padding: Spacing.cardPadding,
-              marginTop: Spacing.elementGap,
-              marginBottom: Spacing.sectionGap,
-              marginHorizontal: Spacing.sectionGap,
-              minWidth: 320,
-            },
-          ]}>
+          style={{
+            backgroundColor: '#1e1e1e',
+            padding: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#2a2a2a',
+            minWidth: 320,
+          }}>
           <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#FFFFFF', marginBottom: Spacing.elementGap, textAlign: 'center' }}>
             Weekly Progress
           </Text>
@@ -524,16 +525,18 @@ export default function DashboardScreen() {
         {nextWorkout ? (
           <Pressable
             onPress={handleStartNextWorkout}
-            style={({ pressed }) => [
-              CardStyles.base,
-              {
-                padding: Spacing.cardPadding,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-              pressed && CardStyles.pressed,
-            ]}>
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 16,
+              marginHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
                 RECOMMENDED FOR TODAY
@@ -548,19 +551,15 @@ export default function DashboardScreen() {
               }}>
               <Pressable
                 onPress={handleStartNextWorkout}
-                style={({ pressed }) => [
-                  {
-                    backgroundColor: '#10b981',
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 20,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  },
-                  CardStyles.buttonGlow,
-                  pressed && CardStyles.pressed,
-                ]}>
-                <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#FFFFFF' }}>
+                style={{
+                  backgroundColor: '#10b981',
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
                   Start
                 </Text>
               </Pressable>
@@ -569,16 +568,18 @@ export default function DashboardScreen() {
         ) : !hasRoutines ? (
           <Pressable
             onPress={() => router.push('/routines/create')}
-            style={({ pressed }) => [
-              CardStyles.base,
-              {
-                padding: Spacing.cardPadding,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              },
-              pressed && CardStyles.pressed,
-            ]}>
+            style={{
+              backgroundColor: '#1e1e1e',
+              padding: 16,
+              marginHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2a2a2a',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
                 GET STARTED

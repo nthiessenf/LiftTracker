@@ -1,4 +1,3 @@
-import { CardStyles } from '@/constants/Typography';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { CircularProgressBase } from 'react-native-circular-progress-indicator';
@@ -13,18 +12,19 @@ type WeeklyGoalRingProps = {
 export default function WeeklyGoalRing({ currentCount, goal, streak, onEditGoal }: WeeklyGoalRingProps) {
   return (
     <View
-      style={[
-        CardStyles.base,
-        {
-          padding: 16,
-          minWidth: 320,
-          marginBottom: 20,
-          marginHorizontal: 32,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        },
-      ]}>
+      style={{
+        backgroundColor: '#1e1e1e',
+        padding: 16,
+        marginHorizontal: 16,
+        marginBottom: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#2a2a2a',
+        minWidth: 320,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
       {/* Left Section - The Ring */}
       <View>
         <CircularProgressBase
