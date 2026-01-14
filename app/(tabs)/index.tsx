@@ -6,6 +6,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card } from '../../components/ui';
 
 type WorkoutSession = {
@@ -33,6 +34,13 @@ export default function DashboardScreen() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [goalInput, setGoalInput] = useState('');
   const [hasRoutines, setHasRoutines] = useState(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   const getCurrentWeekDays = (): Date[] => {
     const today = new Date();
@@ -413,12 +421,24 @@ export default function DashboardScreen() {
         </View>
       </Modal>
 
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingTop: 40,
-          paddingBottom: 20,
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 20,
+            paddingBottom: 40,
+          }}>
+        <Text style={{ 
+          color: '#10b981', 
+          fontSize: 14, 
+          fontWeight: '500',
+          letterSpacing: 0.5,
+          marginBottom: 4,
+          textAlign: 'center',
+          textTransform: 'uppercase'
         }}>
+          {getGreeting()}
+        </Text>
         <Text style={{ 
           fontFamily: 'Inter_700Bold', 
           fontSize: 36, 
@@ -431,7 +451,7 @@ export default function DashboardScreen() {
         </Text>
 
         {/* Weekly Goal Ring */}
-        <Card variant="default" style={{ marginHorizontal: 24 }}>
+        <Card variant="default" style={{ marginHorizontal: 24, marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ marginRight: 24 }}>
               <WeeklyGoalRing
@@ -469,7 +489,7 @@ export default function DashboardScreen() {
         </Card>
 
         {/* Weekly Progress Card */}
-        <Card style={{ marginHorizontal: 24 }}>
+        <Card style={{ marginHorizontal: 24, marginBottom: 16 }}>
           <Text style={{ 
             color: '#FFFFFF', 
             fontSize: 16, 
@@ -563,19 +583,9 @@ export default function DashboardScreen() {
           </Text>
         </Card>
 
-      </ScrollView>
-
-      {/* Action Card - Up Next or Empty State */}
-      <View
-        style={{
-          paddingHorizontal: Spacing.screenHorizontal,
-          paddingBottom: Spacing.sectionGap,
-          paddingTop: Spacing.screenHorizontal,
-          borderTopWidth: 1,
-          borderTopColor: '#2a2a2a',
-        }}>
+        {/* Recommended for Today Card */}
         {nextWorkout ? (
-          <Card variant="accent" style={{ marginHorizontal: 24, marginTop: 24 }}>
+          <Card variant="accent" style={{ marginHorizontal: 24 }}>
             <Text style={{ 
               color: '#10b981', 
               fontSize: 12, 
@@ -607,43 +617,40 @@ export default function DashboardScreen() {
             </View>
           </Card>
         ) : !hasRoutines ? (
-          <Pressable
-            onPress={() => router.push('/routines/create')}
-            style={{
-              backgroundColor: '#1e1e1e',
-              padding: 16,
-              marginHorizontal: 16,
-              marginBottom: 12,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
-                GET STARTED
-              </Text>
-              <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.5, color: '#FFFFFF' }}>
-                Create your first routine
-              </Text>
-            </View>
-            <View
+          <Card style={{ marginHorizontal: 24 }}>
+            <Pressable
+              onPress={() => router.push('/routines/create')}
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: 'transparent',
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginLeft: 16,
+                justifyContent: 'space-between',
               }}>
-              <FontAwesome name="plus-circle" size={32} color="#10b981" />
-            </View>
-          </Pressable>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'Inter_500Medium', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, color: '#8E8E93', marginBottom: 6 }}>
+                  GET STARTED
+                </Text>
+                <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.5, color: '#FFFFFF' }}>
+                  Create your first routine
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 16,
+                }}>
+                <FontAwesome name="plus-circle" size={32} color="#10b981" />
+              </View>
+            </Pressable>
+          </Card>
         ) : null}
-      </View>
+
+        </ScrollView>
+      </SafeAreaView>
     </View>
     </>
   );
