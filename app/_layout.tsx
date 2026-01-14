@@ -13,7 +13,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
@@ -30,6 +30,19 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Custom dark theme with #121212 background
+const CustomDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: '#121212',
+    card: '#1e1e1e',
+    text: '#ffffff',
+    border: '#2a2a2a',
+    notification: '#10b981',
+  },
+};
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -57,21 +70,14 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <SQLiteProvider databaseName="lifttrack.db" onInit={migrateDbIfNeeded}>
+      <ThemeProvider value={CustomDarkTheme}>
+        <RootLayoutNav />
+      </ThemeProvider>
+    </SQLiteProvider>
+  );
 }
-
-// Custom dark theme with #121212 background
-const CustomDarkTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: '#121212',
-    card: '#1e1e1e',
-    text: '#ffffff',
-    border: '#2a2a2a',
-    notification: '#10b981',
-  },
-};
 
 function RootLayoutNav() {
   const router = useRouter();
@@ -138,28 +144,24 @@ function RootLayoutNav() {
   }
 
   return (
-    <SQLiteProvider databaseName="lifttrack.db" onInit={migrateDbIfNeeded}>
-      <ThemeProvider value={CustomDarkTheme}>
-        <Stack>
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          <Stack.Screen
-            name="session/active"
-            options={{
-              presentation: 'modal',
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="routines/create"
-            options={{
-              presentation: 'modal',
-              headerShown: false,
-            }}
-          />
-        </Stack>
-      </ThemeProvider>
-    </SQLiteProvider>
+    <Stack>
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+      <Stack.Screen
+        name="session/active"
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="routines/create"
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+    </Stack>
   );
 }
