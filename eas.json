@@ -24,6 +24,7 @@
       }
     },
     "production": {
+      "distribution": "store",
       "ios": {
         "simulator": false
       }
