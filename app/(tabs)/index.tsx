@@ -469,18 +469,14 @@ export default function DashboardScreen() {
         </Card>
 
         {/* Weekly Progress Card */}
-        <View
-          style={{
-            backgroundColor: '#1e1e1e',
-            padding: 16,
-            marginHorizontal: 16,
-            marginBottom: 12,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: '#2a2a2a',
-            minWidth: 320,
+        <Card style={{ marginHorizontal: 24 }}>
+          <Text style={{ 
+            color: '#FFFFFF', 
+            fontSize: 16, 
+            fontWeight: '600', 
+            marginBottom: 20,
+            textAlign: 'center'
           }}>
-          <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 18, color: '#FFFFFF', marginBottom: Spacing.elementGap, textAlign: 'center' }}>
             Weekly Progress
           </Text>
 
@@ -494,39 +490,32 @@ export default function DashboardScreen() {
             }}>
             {weeklyProgress.map((day, index) => {
               // Determine dot style based on status
-              let borderColor = '#666';
-              let backgroundColor = 'transparent';
-              let borderWidth = 2;
+              let borderColor = 'rgba(255,255,255,0.1)';
+              let backgroundColor = 'rgba(255,255,255,0.1)';
+              let borderWidth = 1;
 
               if (day.hasWorkout) {
-                // Green dot: workout exists
+                // Completed: solid green background
                 borderColor = '#10b981';
                 backgroundColor = '#10b981';
-              } else if (day.isPast) {
-                // Gray dot: missed workout (past date, no workout)
-                borderColor = '#666';
-                backgroundColor = '#333';
-              } else if (day.isFuture) {
-                // Empty/outline dot: future date
-                borderColor = '#444';
+              } else if (day.isToday) {
+                // Today (not completed): green border only, transparent inside
+                borderColor = '#10b981';
                 backgroundColor = 'transparent';
-              }
-
-              // Highlight current day with a thicker border or different style
-              if (day.isToday) {
-                borderWidth = 3;
-                if (!day.hasWorkout) {
-                  borderColor = '#10b981';
-                }
+                borderWidth = 2;
+              } else {
+                // Future/past days not completed: subtle gray
+                borderColor = 'rgba(255,255,255,0.1)';
+                backgroundColor = 'rgba(255,255,255,0.1)';
               }
 
               return (
                 <View key={index} style={{ alignItems: 'center' }}>
                   <View
                     style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 15,
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
                       borderWidth: borderWidth,
                       borderColor: borderColor,
                       backgroundColor: backgroundColor,
@@ -534,9 +523,9 @@ export default function DashboardScreen() {
                     }}
                   />
                   <Text style={{
-                      fontFamily: day.isToday ? 'Inter_600SemiBold' : 'Inter_400Regular',
-                      fontSize: 10,
-                      color: day.isToday ? '#10b981' : '#E5E5E5',
+                      color: day.isToday ? '#10b981' : 'rgba(255,255,255,0.5)',
+                      fontSize: 12,
+                      fontWeight: day.isToday ? '600' : '400',
                     }}>
                     {getDayLabel(day.date)}
                   </Text>
@@ -546,10 +535,15 @@ export default function DashboardScreen() {
           </View>
 
           {/* Summary Text */}
-          <Text style={{ fontFamily: 'Inter_400Regular', fontSize: 14, color: '#8E8E93', textAlign: 'center' }}>
+          <Text style={{ 
+            color: 'rgba(255,255,255,0.5)', 
+            fontSize: 14, 
+            marginTop: 16, 
+            textAlign: 'center' 
+          }}>
             {workoutCount} {workoutCount === 1 ? 'workout' : 'workouts'} this week
           </Text>
-        </View>
+        </Card>
 
       </ScrollView>
 
