@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, Text, ViewStyle } from 'react-native';
 
 interface ButtonProps {
   title: string;
@@ -16,71 +16,60 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'default',
   style 
 }) => {
+  const getButtonStyle = (pressed = false): ViewStyle => {
+    const isSmall = size === 'small';
+    
+    if (variant === 'primary') {
+      return {
+        backgroundColor: pressed ? '#059669' : 'red',
+        paddingHorizontal: isSmall ? 20 : 24,
+        paddingVertical: isSmall ? 10 : 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#10b981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 6,
+      };
+    } else {
+      return {
+        backgroundColor: pressed ? 'rgba(16,185,129,0.15)' : 'transparent',
+        paddingHorizontal: isSmall ? 20 : 24,
+        paddingVertical: isSmall ? 10 : 14,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#10b981',
+        alignItems: 'center',
+        justifyContent: 'center',
+      };
+    }
+  };
+
   return (
     <Pressable 
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        variant === 'primary' && styles.primary,
-        variant === 'secondary' && styles.secondary,
-        size === 'small' && styles.small,
-        pressed && (variant === 'primary' ? styles.primaryPressed : styles.secondaryPressed),
-        style,
-      ]}
+      style={{
+        backgroundColor: variant === 'primary' ? '#10b981' : 'transparent',
+        paddingHorizontal: size === 'small' ? 20 : 24,
+        paddingVertical: size === 'small' ? 10 : 14,
+        borderRadius: 12,
+        borderWidth: variant === 'secondary' ? 1.5 : 0,
+        borderColor: '#10b981',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
-      <Text style={[
-        styles.text,
-        variant === 'secondary' && styles.secondaryText
-      ]}>
+      <Text style={{
+        color: variant === 'primary' ? '#FFFFFF' : '#10b981',
+        fontSize: 15,
+        fontWeight: '600',
+      }}>
         {title}
       </Text>
     </Pressable>
   );
 };
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primary: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    // Glow effect
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  secondary: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.5)',
-  },
-  small: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  text: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  secondaryText: {
-    color: '#10b981',
-  },
-  primaryPressed: {
-    backgroundColor: '#059669',
-  },
-  secondaryPressed: {
-    backgroundColor: 'rgba(16,185,129,0.1)',
-  },
-});
-
 export default Button;
-

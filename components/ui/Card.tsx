@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { View, Pressable, ViewStyle } from 'react-native';
 
 interface CardProps {
   children: React.ReactNode;
@@ -14,21 +14,53 @@ export const Card: React.FC<CardProps> = ({
   onPress,
   style 
 }) => {
-  const cardStyle = [
-    styles.base,
-    variant === 'elevated' && styles.elevated,
-    variant === 'accent' && styles.accent,
-    style,
-  ];
+  const getBackgroundColor = () => {
+    if (variant === 'accent') return 'rgba(16,185,129,0.15)';
+    if (variant === 'elevated') return 'rgba(255,255,255,0.18)';
+    return 'rgba(255,255,255,0.06)';
+  };
+
+  const cardStyle: ViewStyle = {
+    backgroundColor: getBackgroundColor(),
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: variant === 'accent' 
+      ? 'rgba(16,185,129,0.4)' 
+      : variant === 'elevated'
+        ? 'rgba(255,255,255,0.2)'
+        : 'rgba(255,255,255,0.12)',
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: variant === 'elevated' ? 12 : 8 },
+    shadowOpacity: variant === 'elevated' ? 0.5 : 0.3,
+    shadowRadius: variant === 'elevated' ? 20 : 16,
+    elevation: variant === 'elevated' ? 12 : 8,
+    ...style,
+  };
 
   if (onPress) {
     return (
       <Pressable 
-        onPress={onPress}
-        style={({ pressed }) => [
-          cardStyle,
-          pressed && styles.pressed
-        ]}
+        onPress={onPress} 
+        style={{
+          backgroundColor: getBackgroundColor(),
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: variant === 'accent' 
+            ? 'rgba(16,185,129,0.4)' 
+            : variant === 'elevated'
+              ? 'rgba(255,255,255,0.2)'
+              : 'rgba(255,255,255,0.12)',
+          padding: 20,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: variant === 'elevated' ? 12 : 8 },
+          shadowOpacity: variant === 'elevated' ? 0.5 : 0.3,
+          shadowRadius: variant === 'elevated' ? 20 : 16,
+          elevation: variant === 'elevated' ? 12 : 8,
+          ...style,
+        }}
       >
         {children}
       </Pressable>
@@ -38,37 +70,4 @@ export const Card: React.FC<CardProps> = ({
   return <View style={cardStyle}>{children}</View>;
 };
 
-const styles = StyleSheet.create({
-  base: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: 20,
-    marginBottom: 16,
-    // iOS shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    // Android shadow
-    elevation: 8,
-  },
-  elevated: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  accent: {
-    backgroundColor: 'rgba(16,185,129,0.1)',
-    borderColor: 'rgba(16,185,129,0.3)',
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-  },
-});
-
 export default Card;
-

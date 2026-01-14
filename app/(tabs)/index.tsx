@@ -1,7 +1,7 @@
 import WeeklyGoalRing from '@/components/WeeklyGoalRing';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -22,6 +22,7 @@ type DayStatus = {
 };
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const db = useSQLiteContext();
   const [weeklyProgress, setWeeklyProgress] = useState<DayStatus[]>([]);
   const [workoutCount, setWorkoutCount] = useState(0);
@@ -337,6 +338,20 @@ export default function DashboardScreen() {
         }}
       />
       <View style={{ backgroundColor: '#121212', flex: 1 }}>
+      <Pressable 
+        onPress={() => router.push('/test-ui')}
+        style={{ 
+          backgroundColor: 'red', 
+          padding: 16, 
+          borderRadius: 8, 
+          marginBottom: 16,
+          marginHorizontal: 24 
+        }}
+      >
+        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+          🧪 TEST NEW UI COMPONENTS
+        </Text>
+      </Pressable>
       {/* Goal Edit Modal (Android fallback) */}
       <Modal
         visible={showGoalModal}
