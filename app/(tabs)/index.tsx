@@ -511,17 +511,35 @@ export default function DashboardScreen() {
 
               return (
                 <View key={index} style={{ alignItems: 'center' }}>
-                  <View
-                    style={{
+                  {day.hasWorkout ? (
+                    <View style={{
                       width: 40,
                       height: 40,
                       borderRadius: 20,
-                      borderWidth: borderWidth,
-                      borderColor: borderColor,
-                      backgroundColor: backgroundColor,
+                      backgroundColor: '#10b981',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: '#10b981',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
                       marginBottom: 4,
-                    }}
-                  />
+                    }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>✓</Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        borderWidth: borderWidth,
+                        borderColor: borderColor,
+                        backgroundColor: backgroundColor,
+                        marginBottom: 4,
+                      }}
+                    />
+                  )}
                   <Text style={{
                       color: day.isToday ? '#10b981' : 'rgba(255,255,255,0.5)',
                       fontSize: 12,
