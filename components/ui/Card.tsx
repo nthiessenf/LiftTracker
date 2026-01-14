@@ -28,7 +28,7 @@ export const Card: React.FC<CardProps> = ({
       ? 'rgba(16,185,129,0.4)' 
       : variant === 'elevated'
         ? 'rgba(255,255,255,0.2)'
-        : 'rgba(255,255,255,0.12)',
+        : 'rgba(255,255,255,0.2)',
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
@@ -51,7 +51,7 @@ export const Card: React.FC<CardProps> = ({
             ? 'rgba(16,185,129,0.4)' 
             : variant === 'elevated'
               ? 'rgba(255,255,255,0.2)'
-              : 'rgba(255,255,255,0.12)',
+              : 'rgba(255,255,255,0.2)',
           padding: 20,
           marginBottom: 16,
           shadowColor: '#000',

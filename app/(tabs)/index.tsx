@@ -2,6 +2,7 @@ import WeeklyGoalRing from '@/components/WeeklyGoalRing';
 import { Spacing } from '@/constants/Typography';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
@@ -346,7 +347,7 @@ export default function DashboardScreen() {
           ),
         }}
       />
-      <View style={{ backgroundColor: '#121212', flex: 1 }}>
+      <View style={{ backgroundColor: '#121212', flex: 1, overflow: 'hidden' }}>
       {/* Goal Edit Modal (Android fallback) */}
       <Modal
         visible={showGoalModal}
@@ -422,6 +423,19 @@ export default function DashboardScreen() {
       </Modal>
 
       <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }}>
+        <LinearGradient
+          colors={['rgba(16,185,129,0.2)', 'rgba(16,185,129,0.05)', 'transparent']}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 300,
+            height: 300,
+            borderRadius: 150,
+          }}
+        />
         <ScrollView
           contentContainerStyle={{
             flexGrow: 1,
