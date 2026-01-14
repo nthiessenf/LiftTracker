@@ -1,12 +1,12 @@
 import WeeklyGoalRing from '@/components/WeeklyGoalRing';
+import { Spacing } from '@/constants/Typography';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { CardStyles, Spacing, Typography } from '@/constants/Typography';
-import { Card, Button } from '../../components/ui';
+import { Button, Card } from '../../components/ui';
 
 type WorkoutSession = {
   id: string;
@@ -416,19 +416,57 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          alignItems: 'center',
           paddingTop: 40,
           paddingBottom: 20,
         }}>
-        <Text style={{ fontFamily: 'Inter_700Bold', fontSize: 36, letterSpacing: -1, color: '#FFFFFF', marginBottom: Spacing.sectionGap }}>LiftTrack</Text>
+        <Text style={{ 
+          fontFamily: 'Inter_700Bold', 
+          fontSize: 36, 
+          letterSpacing: -1, 
+          color: '#FFFFFF', 
+          marginBottom: Spacing.sectionGap,
+          textAlign: 'center',
+        }}>
+          LiftTrack
+        </Text>
 
         {/* Weekly Goal Ring */}
-        <WeeklyGoalRing
-          currentCount={workoutCount}
-          goal={weeklyGoal}
-          streak={currentStreak}
-          onEditGoal={handleEditGoal}
-        />
+        <Card variant="default" style={{ marginHorizontal: 24 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ marginRight: 24 }}>
+              <WeeklyGoalRing
+                currentCount={workoutCount}
+                goal={weeklyGoal}
+                streak={currentStreak}
+                onEditGoal={handleEditGoal}
+              />
+            </View>
+            
+            <View style={{ flex: 1 }}>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 4 }}>
+                  Weekly Goal
+                </Text>
+                <Pressable
+                  onPress={handleEditGoal}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                  disabled={!handleEditGoal}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '700' }}>
+                    {weeklyGoal} Workouts
+                  </Text>
+                </Pressable>
+              </View>
+              <View>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 4 }}>
+                  Current Streak
+                </Text>
+                <Text style={{ color: '#10b981', fontSize: 24, fontWeight: '700' }}>
+                  🔥 {currentStreak} Weeks
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Card>
 
         {/* Weekly Progress Card */}
         <View
