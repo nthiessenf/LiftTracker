@@ -4,7 +4,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Card, Button } from '../../components/ui';
 
 type Routine = {
   id: string;
@@ -245,144 +246,134 @@ export default function WorkoutsScreen() {
     const lastPerformedText = getDaysAgo(item.lastPerformed);
 
     return (
-      <Pressable
+      <Card
+        variant="default"
         onPress={() => handleCardPress(item.id)}
-        style={{
-          backgroundColor: '#1e1e1e',
-          padding: 16,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-        {/* LEFT SIDE: Text Info */}
-        <View style={{ flex: 1, marginRight: 16 }}>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
-            {item.name}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-              Last: {lastPerformedText}
+        style={{ marginHorizontal: 24, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* LEFT SIDE: Text Info */}
+          <View style={{ flex: 1, marginRight: 16 }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+              {item.name}
             </Text>
-            {item.estimatedDuration > 0 && (
-              <>
-                <Text style={{ color: '#a1a1aa', fontSize: 14, marginHorizontal: 6 }}>•</Text>
-                <Ionicons name="time-outline" size={14} color="#a1a1aa" style={{ marginRight: 4 }} />
-                <Text style={{ color: '#a1a1aa', fontSize: 14 }}>
-                  {formatDuration(item.estimatedDuration)}
-                </Text>
-              </>
-            )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                Last: {lastPerformedText}
+              </Text>
+              {item.estimatedDuration > 0 && (
+                <>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginHorizontal: 6 }}>•</Text>
+                  <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.4)" style={{ marginRight: 4 }} />
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                    {formatDuration(item.estimatedDuration)}
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* RIGHT SIDE: Actions */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* More Menu: Horizontal dots, subtle color, with right margin */}
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                handleRoutineMenu(item);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{
+                padding: 8,
+                marginRight: 8,
+              }}>
+              <MaterialIcons name="more-horiz" size={20} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
+
+            {/* Start Button */}
+            <Button
+              title="Start"
+              onPress={() => handleStartRoutine(item)}
+              variant="primary"
+              size="default"
+            />
           </View>
         </View>
-
-        {/* RIGHT SIDE: Actions */}
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {/* More Menu: Horizontal dots, subtle color, with right margin */}
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation();
-              handleRoutineMenu(item);
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={{
-              padding: 8,
-              marginRight: 8,
-            }}>
-            <MaterialIcons name="more-horiz" size={20} color="#71717a" />
-          </TouchableOpacity>
-
-          {/* Start Button */}
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation();
-              handleStartRoutine(item);
-            }}
-            style={{
-              backgroundColor: '#10b981',
-              paddingHorizontal: 20,
-              paddingVertical: 10,
-              borderRadius: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Start</Text>
-          </Pressable>
-        </View>
-      </Pressable>
+      </Card>
     );
   };
 
   return (
-    <>
-      <View style={{ backgroundColor: '#121212', flex: 1 }}>
-        <FlatList
-        ListHeaderComponent={
-          <>
-            {/* Hero Card: Start Empty Workout */}
-            <Pressable
-              onPress={handleQuickStart}
-              style={{
-                backgroundColor: '#1e1e1e',
-                padding: 16,
-                marginHorizontal: 16,
-                marginTop: 16,
-                marginBottom: 24,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: '#2a2a2a',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-              {/* Left Side: Icon + Text */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <MaterialIcons name="add-circle" size={24} color="#10b981" />
-                <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginLeft: 12 }}>
-                  Start Empty Workout
-                </Text>
-              </View>
-              {/* Right Side: Chevron */}
-              <MaterialIcons name="chevron-right" size={20} color="#10b981" />
-            </Pressable>
+    <View style={{ backgroundColor: '#121212', flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: 60,
+          paddingBottom: 24,
+        }}
+        showsVerticalScrollIndicator={false}>
+        {/* Page Title */}
+        <Text style={{
+          fontSize: 32,
+          fontWeight: '700',
+          letterSpacing: -0.5,
+          color: '#FFFFFF',
+          marginBottom: 32,
+          marginHorizontal: 24,
+        }}>
+          Workouts
+        </Text>
 
-            {/* Routines Header */}
-            <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Routines</Text>
-                <TouchableOpacity
-                  onPress={handleCreateRoutine}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Ionicons name="add-circle-outline" size={28} color="#10b981" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            {userRoutines.length > 0 ? (
-              userRoutines.map((routine) => (
-                <View key={routine.id}>{renderRoutineItem({ item: routine })}</View>
-              ))
-            ) : (
-              <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-                <Text style={{ color: '#666', fontSize: 14, fontStyle: 'italic' }}>
-                  No routines yet. Create one to get started!
-                </Text>
-              </View>
-            )}
-          </>
-        }
-        data={[]}
-        renderItem={() => null}
-        keyExtractor={() => ''}
-        contentContainerStyle={{ paddingVertical: 8 }}
-        showsVerticalScrollIndicator={false}
-      />
+        {/* Hero Card: Start Empty Workout */}
+        <Pressable
+          onPress={handleQuickStart}
+          style={{
+            backgroundColor: '#1e1e1e',
+            padding: 16,
+            marginHorizontal: 24,
+            marginBottom: 24,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: '#2a2a2a',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+          {/* Left Side: Icon + Text */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <MaterialIcons name="add-circle" size={24} color="#10b981" />
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginLeft: 12 }}>
+              Start Empty Workout
+            </Text>
+          </View>
+          {/* Right Side: Chevron */}
+          <MaterialIcons name="chevron-right" size={20} color="#10b981" />
+        </Pressable>
 
-      </View>
-    </>
+        {/* Routines Header */}
+        <View style={{ marginHorizontal: 24, marginTop: 32, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600' }}>Routines</Text>
+            <TouchableOpacity
+              onPress={handleCreateRoutine}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="add-circle-outline" size={28} color="#10b981" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Routine Cards */}
+        {userRoutines.length > 0 ? (
+          userRoutines.map((routine) => (
+            <View key={routine.id}>{renderRoutineItem({ item: routine })}</View>
+          ))
+        ) : (
+          <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontStyle: 'italic' }}>
+              No routines yet. Create one to get started!
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 

@@ -64,7 +64,16 @@ export default function RootLayout() {
   }
 
   return (
-    <SQLiteProvider databaseName="lifttrack.db" onInit={migrateDbIfNeeded}>
+    <SQLiteProvider 
+      databaseName="lifttrack.db" 
+      onInit={async (db) => {
+        try {
+          await migrateDbIfNeeded(db);
+        } catch (error) {
+          console.error('Database migration error:', error);
+          throw error;
+        }
+      }}>
       <ThemeProvider value={CustomDarkTheme}>
         <RootLayoutNav />
       </ThemeProvider>
@@ -99,7 +108,9 @@ function RootLayoutNav() {
 
   // Re-check onboarding status when segments change (especially when navigating from onboarding)
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      return;
+    }
 
     const inOnboarding = segments[0] === 'onboarding';
 
@@ -117,7 +128,9 @@ function RootLayoutNav() {
 
   // Handle navigation based on onboarding status
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      return;
+    }
 
     const inOnboarding = segments[0] === 'onboarding';
 
