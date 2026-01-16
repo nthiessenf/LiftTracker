@@ -48,6 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Workout',
           tabBarIcon: ({ color }) => <MaterialTabBarIcon name="dumbbell" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
