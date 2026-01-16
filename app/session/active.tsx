@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
+import { Card, Button } from '@/components/ui';
 
 type Set = {
   id: string;
@@ -369,64 +370,74 @@ export default function ActiveSessionScreen() {
 
   const renderExerciseItem = ({ item }: { item: Exercise }) => {
     return (
-      <Pressable
+      <Card
+        variant="default"
         onPress={() => handleSelectExercise(item)}
-        style={{
-          backgroundColor: '#1e1e1e',
-          padding: 16,
-          marginHorizontal: 16,
-          marginVertical: 8,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-        }}>
-        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
-        <Text style={{ color: '#E5E5E5', fontSize: 14, marginTop: 4 }}>{item.muscleGroup}</Text>
-      </Pressable>
+        style={{ marginHorizontal: 16, marginVertical: 8 }}>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: '#fff' }}>{item.name}</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{item.muscleGroup}</Text>
+      </Card>
     );
   };
 
-  const renderSetRow = (exerciseId: string, set: Set, index: number) => {
+  const renderSetRow = (exerciseId: string, set: Set, index: number, totalSets: number) => {
     return (
       <View
         key={set.id}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          borderBottomWidth: 1,
-          borderBottomColor: '#2a2a2a',
+          paddingVertical: 12,
+          paddingHorizontal: 20,
+          borderBottomWidth: index < totalSets - 1 ? 1 : 0,
+          borderBottomColor: 'rgba(255,255,255,0.1)',
         }}>
-        <Text style={{ color: 'white', width: 40, fontSize: 14 }}>{index + 1}</Text>
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 12,
+          }}>
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{index + 1}</Text>
+        </View>
         <TextInput
           style={{
-            color: 'white',
-            backgroundColor: '#333',
-            padding: 10,
-            borderRadius: 6,
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderRadius: 8,
+            color: '#fff',
+            fontSize: 16,
+            padding: 8,
+            paddingHorizontal: 12,
             width: 80,
             marginRight: 8,
-            fontSize: 14,
           }}
           placeholder="lbs"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255,255,255,0.4)"
           keyboardType="numeric"
           value={set.weight}
           onChangeText={(text) => handleUpdateSet(exerciseId, set.id, 'weight', text)}
         />
         <TextInput
           style={{
-            color: 'white',
-            backgroundColor: '#333',
-            padding: 10,
-            borderRadius: 6,
+            backgroundColor: 'rgba(255,255,255,0.05)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderRadius: 8,
+            color: '#fff',
+            fontSize: 16,
+            padding: 8,
+            paddingHorizontal: 12,
             width: 80,
             marginRight: 8,
-            fontSize: 14,
           }}
           placeholder="Reps"
-          placeholderTextColor="#999"
+          placeholderTextColor="rgba(255,255,255,0.4)"
           keyboardType="numeric"
           value={set.reps}
           onChangeText={(text) => handleUpdateSet(exerciseId, set.id, 'reps', text)}
@@ -434,16 +445,16 @@ export default function ActiveSessionScreen() {
         <TouchableOpacity
           onPress={() => handleUpdateSet(exerciseId, set.id, 'completed', !set.completed)}
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 4,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
             borderWidth: 2,
-            borderColor: set.completed ? '#10b981' : '#666',
+            borderColor: set.completed ? '#10b981' : 'rgba(255,255,255,0.3)',
             backgroundColor: set.completed ? '#10b981' : 'transparent',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          {set.completed && <Text style={{ color: 'white', fontSize: 14 }}>✓</Text>}
+          {set.completed && <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>✓</Text>}
         </TouchableOpacity>
       </View>
     );
@@ -454,27 +465,20 @@ export default function ActiveSessionScreen() {
     const hasAlternatives = exerciseData?.alternatives && exerciseData.alternatives.length > 0;
 
     return (
-      <View
+      <Card
         key={exercise.exerciseId}
-        style={{
-          backgroundColor: '#1e1e1e',
-          marginHorizontal: 16,
-          marginVertical: 12,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-          overflow: 'hidden',
-        }}>
+        variant="default"
+        style={{ marginHorizontal: 0, marginBottom: 16, padding: 0 }}>
         <View
           style={{
-            padding: 16,
+            padding: 20,
             borderBottomWidth: 1,
-            borderBottomColor: '#2a2a2a',
+            borderBottomColor: 'rgba(255,255,255,0.1)',
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', flex: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#fff', flex: 1 }}>
             {exercise.exerciseName}
           </Text>
           {hasAlternatives && (
@@ -487,7 +491,7 @@ export default function ActiveSessionScreen() {
                 borderWidth: 1,
                 borderColor: '#10b981',
               }}>
-              <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '600' }}>Swap</Text>
+              <Text style={{ fontSize: 14, color: '#10b981', fontWeight: '600' }}>Swap</Text>
             </Pressable>
           )}
         </View>
@@ -497,32 +501,30 @@ export default function ActiveSessionScreen() {
           style={{
             flexDirection: 'row',
             paddingVertical: 12,
-            paddingHorizontal: 16,
-            backgroundColor: '#252525',
+            paddingHorizontal: 20,
+            backgroundColor: 'rgba(255,255,255,0.02)',
             borderBottomWidth: 1,
-            borderBottomColor: '#2a2a2a',
+            borderBottomColor: 'rgba(255,255,255,0.1)',
           }}>
-          <Text style={{ color: '#E5E5E5', width: 40, fontSize: 12, fontWeight: '600' }}>Set</Text>
-          <Text style={{ color: '#E5E5E5', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>lbs</Text>
-          <Text style={{ color: '#E5E5E5', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>Reps</Text>
-          <Text style={{ color: '#E5E5E5', fontSize: 12, fontWeight: '600' }}>Done</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', width: 40, fontSize: 12, fontWeight: '600' }}>Set</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>lbs</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', width: 80, fontSize: 12, fontWeight: '600', marginRight: 8 }}>Reps</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600' }}>Done</Text>
         </View>
 
         {/* Set Rows */}
-        {exercise.sets.map((set, index) => renderSetRow(exercise.exerciseId, set, index))}
+        {exercise.sets.map((set, index) => renderSetRow(exercise.exerciseId, set, index, exercise.sets.length))}
 
         {/* Add Set Button */}
-        <Pressable
-          onPress={() => handleAddSet(exercise.exerciseId)}
-          style={{
-            padding: 12,
-            alignItems: 'center',
-            borderTopWidth: 1,
-            borderTopColor: '#2a2a2a',
-          }}>
-          <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>+ Add Set</Text>
-        </Pressable>
-      </View>
+        <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+          <Button
+            title="+ Add Set"
+            onPress={() => handleAddSet(exercise.exerciseId)}
+            variant="secondary"
+            size="small"
+          />
+        </View>
+      </Card>
     );
   };
 
@@ -534,62 +536,60 @@ export default function ActiveSessionScreen() {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingTop: 16,
-          paddingBottom: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: '#2a2a2a',
+          paddingHorizontal: 24,
+          paddingTop: 60,
+          paddingBottom: 16,
         }}>
-        <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Duration: 00:00</Text>
-        <Pressable
+        <Text style={{ fontSize: 24, fontWeight: '700', color: '#fff' }}>Active Workout</Text>
+        <Button
+          title="Finish"
           onPress={handleFinish}
-          style={{
-            backgroundColor: '#10b981',
-            paddingHorizontal: 20,
-            paddingVertical: 8,
-            borderRadius: 8,
-          }}>
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Finish</Text>
-        </Pressable>
+          variant="primary"
+          size="small"
+        />
       </View>
 
       {/* Body */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 16 }}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ 
+          paddingHorizontal: 24,
+          paddingBottom: 100,
+          paddingTop: 8,
+        }}>
         {sessionExercises.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, minHeight: 400 }}>
-            <Pressable
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <Card
+              variant="default"
               onPress={handleAddExercise}
               style={{
-                backgroundColor: '#1e1e1e',
-                paddingHorizontal: 32,
-                paddingVertical: 16,
-                borderRadius: 12,
-                borderWidth: 2,
-                borderColor: '#10b981',
                 borderStyle: 'dashed',
+                borderColor: 'rgba(255,255,255,0.2)',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                alignItems: 'center',
+                padding: 32,
               }}>
-              <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Add Exercise</Text>
-            </Pressable>
+              <Text style={{ fontSize: 32, color: '#10b981', marginBottom: 8 }}>+</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#fff' }}>Add Exercise</Text>
+            </Card>
           </View>
         ) : (
           <>
             {sessionExercises.map((exercise) => renderSessionExercise(exercise))}
-            <Pressable
+            <Card
+              variant="default"
               onPress={handleAddExercise}
               style={{
-                backgroundColor: '#1e1e1e',
-                paddingHorizontal: 32,
-                paddingVertical: 16,
-                borderRadius: 12,
-                borderWidth: 2,
-                borderColor: '#10b981',
                 borderStyle: 'dashed',
-                marginHorizontal: 16,
-                marginTop: 8,
+                borderColor: 'rgba(255,255,255,0.2)',
+                backgroundColor: 'rgba(255,255,255,0.02)',
                 alignItems: 'center',
+                padding: 24,
+                marginTop: 8,
               }}>
-              <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>Add Exercise</Text>
-            </Pressable>
+              <Text style={{ fontSize: 32, color: '#10b981', marginBottom: 8 }}>+</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#fff' }}>Add Exercise</Text>
+            </Card>
           </>
         )}
       </ScrollView>
@@ -599,42 +599,42 @@ export default function ActiveSessionScreen() {
         <View
           style={{
             position: 'absolute',
-            bottom: 80,
-            left: 16,
-            right: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            borderRadius: 12,
-            padding: 16,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderWidth: 1,
-            borderColor: '#10b981',
+            bottom: 100,
+            left: 24,
+            right: 24,
           }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <Text style={{ color: '#10b981', fontSize: 18, fontWeight: '600', marginRight: 12 }}>
-              {timerComplete ? 'GO!' : `Rest: ${String(Math.floor(restTimerSeconds / 60)).padStart(2, '0')}:${String(restTimerSeconds % 60).padStart(2, '0')}`}
-            </Text>
-          </View>
-          <Pressable
-            onPress={stopRestTimer}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-            }}>
-            <Text style={{ color: '#E5E5E5', fontSize: 16, fontWeight: '600' }}>✕</Text>
-          </Pressable>
+          <Card variant="elevated" style={{ padding: 24, marginBottom: 0 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                {timerComplete ? (
+                  <Text style={{ fontSize: 48, fontWeight: '700', color: '#10b981' }}>GO!</Text>
+                ) : (
+                  <Text style={{ fontSize: 48, fontWeight: '700', color: '#10b981' }}>
+                    {String(Math.floor(restTimerSeconds / 60)).padStart(2, '0')}:{String(restTimerSeconds % 60).padStart(2, '0')}
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                onPress={stopRestTimer}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                }}>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 20, fontWeight: '600' }}>✕</Text>
+              </Pressable>
+            </View>
+          </Card>
         </View>
       )}
 
       {/* Footer */}
       <View
         style={{
-          paddingHorizontal: 16,
+          paddingHorizontal: 24,
           paddingBottom: 32,
           paddingTop: 16,
           borderTopWidth: 1,
-          borderTopColor: '#2a2a2a',
+          borderTopColor: 'rgba(255,255,255,0.1)',
         }}>
         <Pressable onPress={handleCancel} style={{ alignItems: 'center' }}>
           <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600' }}>Cancel Workout</Text>
