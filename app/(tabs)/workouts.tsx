@@ -306,7 +306,7 @@ export default function WorkoutsScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: 60,
+          paddingTop: 80,
           paddingBottom: 24,
         }}
         showsVerticalScrollIndicator={false}>
