@@ -1,8 +1,10 @@
 import { EXERCISES } from '@/data/exercises';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Card } from '@/components/ui';
 
 type PersonalRecord = {
   pr: number | null;
@@ -12,7 +14,16 @@ type PersonalRecord = {
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
+  const router = useRouter();
+  const navigation = useNavigation();
   const [personalRecord, setPersonalRecord] = useState<PersonalRecord | null>(null);
+
+  // Hide native header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false
+    });
+  }, [navigation]);
 
   // Find exercise from static data
   const exercise = EXERCISES.find((ex) => ex.id === id);
@@ -47,90 +58,172 @@ export default function ExerciseDetailScreen() {
 
   if (!exercise) {
     return (
-      <>
-        <Stack.Screen options={{ title: 'Exercise Not Found' }} />
-        <View style={{ backgroundColor: '#121212', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: 'white', fontSize: 18 }}>Exercise not found</Text>
-        </View>
-      </>
+      <View style={{ backgroundColor: '#121212', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: 'white', fontSize: 18 }}>Exercise not found</Text>
+      </View>
     );
   }
 
+  // Get alternative exercise names
+  const alternativeNames = exercise.alternatives
+    ? exercise.alternatives
+        .map((altId) => EXERCISES.find((ex) => ex.id === altId)?.name)
+        .filter((name): name is string => name !== undefined)
+    : [];
+
   return (
-    <>
-      <Stack.Screen options={{ title: exercise.name }} />
+    <View style={{ backgroundColor: '#121212', flex: 1 }}>
       <ScrollView
-        style={{ backgroundColor: '#121212', flex: 1 }}
-        contentContainerStyle={{ padding: 16 }}>
-        {/* Exercise Title */}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: 60,
+          paddingHorizontal: 24,
+          paddingBottom: 48,
+        }}
+        showsVerticalScrollIndicator={false}>
+        {/* Custom Back Button */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+          <Text style={{ fontSize: 24, color: '#10b981', marginRight: 8 }}>←</Text>
+          <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>Back</Text>
+        </TouchableOpacity>
+
+        {/* Exercise Header */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', marginBottom: 8 }}>
+          <Text style={{
+            fontSize: 32,
+            fontWeight: '700',
+            color: '#fff',
+            letterSpacing: -0.5,
+          }}>
             {exercise.name}
           </Text>
-          <Text style={{ color: '#999', fontSize: 16 }}>{exercise.muscleGroup}</Text>
+          <Text style={{
+            fontSize: 15,
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: 4,
+          }}>
+            {exercise.muscleGroup}
+          </Text>
         </View>
 
         {/* Personal Record Card */}
-        <View
-          style={{
-            backgroundColor: '#1e1e1e',
-            padding: 20,
-            borderRadius: 12,
-            marginBottom: 24,
-            borderWidth: 1,
-            borderColor: '#2a2a2a',
+        <Card variant="accent" style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 14,
+            fontWeight: '600',
+            color: '#10b981',
+            marginBottom: 12,
           }}>
-          <Text style={{ color: '#999', fontSize: 14, marginBottom: 8 }}>All-Time Best</Text>
+            Personal Record
+          </Text>
           {personalRecord?.pr ? (
             <View>
-              <Text style={{ color: '#10b981', fontSize: 32, fontWeight: 'bold', marginBottom: 4 }}>
-                {personalRecord.pr} lbs
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 }}>
+                <Text style={{
+                  fontSize: 32,
+                  fontWeight: '700',
+                  color: '#10b981',
+                }}>
+                  {personalRecord.pr}
+                </Text>
+                <Text style={{
+                  fontSize: 16,
+                  color: 'rgba(255,255,255,0.5)',
+                  marginLeft: 4,
+                }}>
+                  lbs
+                </Text>
+              </View>
               {personalRecord.reps && (
-                <Text style={{ color: '#999', fontSize: 14 }}>Best Reps: {personalRecord.reps}</Text>
+                <Text style={{
+                  fontSize: 16,
+                  color: 'rgba(255,255,255,0.5)',
+                  marginTop: 4,
+                }}>
+                  Best: {personalRecord.reps} reps
+                </Text>
               )}
             </View>
           ) : (
-            <Text style={{ color: '#666', fontSize: 18, fontStyle: 'italic' }}>No records yet</Text>
+            <Text style={{
+              fontSize: 16,
+              color: 'rgba(255,255,255,0.4)',
+              fontStyle: 'italic',
+            }}>
+              No records yet
+            </Text>
           )}
-        </View>
+        </Card>
 
-        {/* Exercise Info */}
-        <View
-          style={{
-            backgroundColor: '#1e1e1e',
-            padding: 20,
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: '#2a2a2a',
+        {/* Exercise Info Card */}
+        <Card variant="default">
+          <Text style={{
+            fontSize: 14,
+            fontWeight: '600',
+            color: '#fff',
+            marginBottom: 12,
           }}>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
-            Exercise Details
+            Exercise Info
           </Text>
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ color: '#999', fontSize: 14, marginBottom: 4 }}>Muscle Group</Text>
-            <Text style={{ color: 'white', fontSize: 16 }}>{exercise.muscleGroup}</Text>
+          
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.5)',
+            }}>
+              Muscle Group
+            </Text>
+            <Text style={{
+              fontSize: 16,
+              color: '#fff',
+              marginTop: 2,
+            }}>
+              {exercise.muscleGroup}
+            </Text>
           </View>
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ color: '#999', fontSize: 14, marginBottom: 4 }}>Target Reps</Text>
-            <Text style={{ color: 'white', fontSize: 16 }}>{exercise.targetReps}</Text>
+
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.5)',
+            }}>
+              Target Reps
+            </Text>
+            <Text style={{
+              fontSize: 16,
+              color: '#fff',
+              marginTop: 2,
+            }}>
+              {exercise.targetReps}
+            </Text>
           </View>
-          {exercise.alternatives && exercise.alternatives.length > 0 && (
+
+          {alternativeNames.length > 0 && (
             <View>
-              <Text style={{ color: '#999', fontSize: 14, marginBottom: 8 }}>Alternatives</Text>
-              {exercise.alternatives.map((altId) => {
-                const altExercise = EXERCISES.find((ex) => ex.id === altId);
-                return altExercise ? (
-                  <Text key={altId} style={{ color: '#10b981', fontSize: 14, marginBottom: 4 }}>
-                    • {altExercise.name}
-                  </Text>
-                ) : null;
-              })}
+              <Text style={{
+                fontSize: 14,
+                color: 'rgba(255,255,255,0.5)',
+              }}>
+                Alternatives
+              </Text>
+              <Text style={{
+                fontSize: 16,
+                color: '#fff',
+                marginTop: 2,
+              }}>
+                {alternativeNames.join(', ')}
+              </Text>
             </View>
           )}
-        </View>
+        </Card>
       </ScrollView>
-    </>
+    </View>
   );
 }
 
