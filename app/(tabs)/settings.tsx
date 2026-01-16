@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Card, Button } from '../../components/ui';
 
 export default function SettingsScreen() {
   const db = useSQLiteContext();
@@ -88,91 +89,195 @@ export default function SettingsScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingTop: 40,
-          paddingBottom: 20,
-          paddingHorizontal: 16,
+          paddingTop: 80,
+          paddingHorizontal: 24,
+          paddingBottom: 24,
+        }}
+        showsVerticalScrollIndicator={false}>
+        {/* Page Title */}
+        <Text style={{
+          fontSize: 32,
+          fontWeight: '700',
+          letterSpacing: -0.5,
+          color: '#fff',
+          marginBottom: 32,
         }}>
-        {/* Title */}
-        <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', marginBottom: 32 }}>
           Settings
         </Text>
 
-        {/* Data Management Section */}
-        <View style={{ marginBottom: 32 }}>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 16 }}>
-            Data Management
-          </Text>
-          <Pressable
-            onPress={handleExportData}
-            style={{
-              backgroundColor: '#10b981',
-              paddingHorizontal: 24,
-              paddingVertical: 16,
-              borderRadius: 8,
-              alignItems: 'center',
-              marginBottom: 12,
-            }}>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              Export Data (Backup)
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={handleRestoreData}
-            style={{
-              backgroundColor: '#ef4444',
-              paddingHorizontal: 24,
-              paddingVertical: 16,
-              borderRadius: 8,
-              alignItems: 'center',
-            }}>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-              Restore Data
-            </Text>
-          </Pressable>
-        </View>
+        {/* PREFERENCES SECTION */}
+        <Text style={{
+          fontSize: 12,
+          fontWeight: '600',
+          color: 'rgba(255,255,255,0.4)',
+          letterSpacing: 1,
+          marginTop: 8,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          PREFERENCES
+        </Text>
 
-        {/* Preferences Section */}
-        <View>
-          <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 16 }}>
-            Preferences
+        {/* Rest Timer Card */}
+        <Card variant="default" style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 17,
+            fontWeight: '600',
+            color: '#fff',
+          }}>
+            Default Rest Timer
           </Text>
+          <Text style={{
+            fontSize: 14,
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: 4,
+            marginBottom: 16,
+          }}>
+            Set default rest time between sets
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              borderRadius: 12,
+              padding: 12,
+              paddingHorizontal: 16,
+              color: '#fff',
+              fontSize: 16,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              marginBottom: 16,
+            }}
+            placeholder="90"
+            placeholderTextColor="rgba(255,255,255,0.4)"
+            keyboardType="numeric"
+            value={restTimerSeconds}
+            onChangeText={setRestTimerSeconds}
+          />
+          <Button
+            title="Save"
+            onPress={handleSaveRestTimer}
+            variant="primary"
+            size="default"
+          />
+        </Card>
 
-          {/* Default Rest Timer */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 8 }}>Default Rest Timer</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <TextInput
-                style={{
-                  color: 'white',
-                  backgroundColor: '#333',
-                  padding: 12,
-                  borderRadius: 8,
-                  fontSize: 16,
-                  borderWidth: 1,
-                  borderColor: '#2a2a2a',
-                  flex: 1,
-                  marginRight: 12,
-                }}
-                placeholder="90"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={restTimerSeconds}
-                onChangeText={setRestTimerSeconds}
-              />
-              <Text style={{ color: '#E5E5E5', fontSize: 14, marginRight: 12 }}>seconds</Text>
-              <Pressable
-                onPress={handleSaveRestTimer}
-                style={{
-                  backgroundColor: '#10b981',
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  borderRadius: 8,
+        {/* DATA SECTION */}
+        <Text style={{
+          fontSize: 12,
+          fontWeight: '600',
+          color: 'rgba(255,255,255,0.4)',
+          letterSpacing: 1,
+          marginTop: 32,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          DATA
+        </Text>
+
+        {/* Export Backup Card */}
+        <Card variant="default" style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, marginRight: 12 }}>📤</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 17,
+                  fontWeight: '600',
+                  color: '#fff',
                 }}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>Save</Text>
-              </Pressable>
+                  Export Backup
+                </Text>
+                <Text style={{
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.5)',
+                  marginTop: 4,
+                }}>
+                  Download your workout data as JSON
+                </Text>
+              </View>
             </View>
+            <Button
+              title="Export"
+              onPress={handleExportData}
+              variant="primary"
+              size="default"
+            />
           </View>
-        </View>
+        </Card>
+
+        {/* Import Backup Card */}
+        <Card variant="default" style={{ marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, marginRight: 12 }}>📥</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{
+                  fontSize: 17,
+                  fontWeight: '600',
+                  color: '#fff',
+                }}>
+                  Restore Backup
+                </Text>
+                <Text style={{
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.5)',
+                  marginTop: 4,
+                }}>
+                  Import previously exported data
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={handleRestoreData}
+              style={{
+                backgroundColor: '#ef4444',
+                paddingHorizontal: 24,
+                paddingVertical: 14,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 15,
+                fontWeight: '600',
+              }}>
+                Restore
+              </Text>
+            </Pressable>
+          </View>
+        </Card>
+
+        {/* ABOUT SECTION */}
+        <Text style={{
+          fontSize: 12,
+          fontWeight: '600',
+          color: 'rgba(255,255,255,0.4)',
+          letterSpacing: 1,
+          marginTop: 32,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          ABOUT
+        </Text>
+
+        {/* Version Card */}
+        <Card variant="default" style={{ marginBottom: 16 }}>
+          <Text style={{
+            fontSize: 17,
+            fontWeight: '600',
+            color: '#fff',
+          }}>
+            App Version
+          </Text>
+          <Text style={{
+            fontSize: 14,
+            color: 'rgba(255,255,255,0.4)',
+            marginTop: 4,
+          }}>
+            1.0.0
+          </Text>
+        </Card>
       </ScrollView>
     </View>
   );
