@@ -168,6 +168,12 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="history/[id]"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

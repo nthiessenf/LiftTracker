@@ -1,10 +1,11 @@
 import { deleteSet, deleteWorkout, updateSet, updateWorkoutDetails } from '@/data/database/db';
 import { EXERCISES, Exercise } from '@/data/exercises';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Card, Button } from '@/components/ui';
 
 type SetData = {
   id: string;
@@ -163,6 +164,25 @@ export default function WorkoutDetailScreen() {
     const year = date.getFullYear();
 
     return `${dayName}, ${month} ${day}, ${year}`;
+  };
+
+  const toggleEditMode = () => {
+    if (isEditing) {
+      handleSave();
+    } else {
+      // Initialize edit state when entering edit mode
+      if (workout) {
+        setEditName(workout.name || '');
+        // Extract date string directly (no Date conversion to avoid timezone issues)
+        let dateStr = workout.date;
+        if (dateStr.includes('T')) {
+          // ISO format: extract YYYY-MM-DD part
+          dateStr = dateStr.split('T')[0];
+        }
+        setEditDate(dateStr);
+      }
+      setIsEditing(true);
+    }
   };
 
   const handleSave = async () => {
@@ -377,20 +397,13 @@ export default function WorkoutDetailScreen() {
 
   const renderExerciseItem = ({ item }: { item: Exercise }) => {
     return (
-      <Pressable
+      <Card
+        variant="default"
         onPress={() => handleSelectExercise(item)}
-        style={{
-          backgroundColor: '#1e1e1e',
-          padding: 16,
-          marginHorizontal: 16,
-          marginVertical: 8,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: '#2a2a2a',
-        }}>
-        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{item.name}</Text>
-        <Text style={{ color: '#E5E5E5', fontSize: 14, marginTop: 4 }}>{item.muscleGroup}</Text>
-      </Pressable>
+        style={{ marginHorizontal: 16, marginVertical: 8 }}>
+        <Text style={{ fontSize: 17, fontWeight: '600', color: '#fff' }}>{item.name}</Text>
+        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{item.muscleGroup}</Text>
+      </Card>
     );
   };
 
@@ -411,313 +424,311 @@ export default function WorkoutDetailScreen() {
   }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: formatDateSafe(workout.date),
-          headerRight: () => (
-            <Pressable
-              onPress={() => {
-                if (isEditing) {
-                  handleSave();
-                } else {
-                  // Initialize edit state when entering edit mode
-                  if (workout) {
-                    setEditName(workout.name || '');
-                    // Extract date string directly (no Date conversion to avoid timezone issues)
-                    let dateStr = workout.date;
-                    if (dateStr.includes('T')) {
-                      // ISO format: extract YYYY-MM-DD part
-                      dateStr = dateStr.split('T')[0];
-                    }
-                    setEditDate(dateStr);
-                  }
-                  setIsEditing(true);
-                }
-              }}
-              style={{ marginRight: 16 }}>
-              <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>
-                {isEditing ? 'Save' : 'Edit'}
-              </Text>
-            </Pressable>
-          ),
-        }}
-      />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={100}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={100}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ backgroundColor: '#121212', flex: 1 }}>
           <ScrollView
-            style={{ backgroundColor: '#121212', flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            keyboardShouldPersistTaps="handled">
-            {/* Workout Summary Card */}
-        <View
-          style={{
-            backgroundColor: '#1e1e1e',
-            marginHorizontal: 16,
-            marginTop: 16,
-            marginBottom: 16,
-            padding: 16,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#2a2a2a',
-          }}>
-          {isEditing ? (
-            <>
-              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 8 }}>Workout Name</Text>
-              <TextInput
-                style={{
-                  color: 'white',
-                  backgroundColor: '#333',
-                  padding: 12,
-                  borderRadius: 8,
-                  fontSize: 16,
-                  borderWidth: 1,
-                  borderColor: '#2a2a2a',
-                  marginBottom: 16,
-                }}
-                placeholder="Enter workout name"
-                placeholderTextColor="#999"
-                value={editName}
-                onChangeText={setEditName}
-              />
-              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 8 }}>Date (YYYY-MM-DD)</Text>
-              <TextInput
-                style={{
-                  color: 'white',
-                  backgroundColor: '#333',
-                  padding: 12,
-                  borderRadius: 8,
-                  fontSize: 16,
-                  borderWidth: 1,
-                  borderColor: '#2a2a2a',
-                  marginBottom: 16,
-                }}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
-                value={editDate}
-                onChangeText={setEditDate}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600', marginBottom: 8 }}>
-                {workout.name || 'Untitled Workout'}
-              </Text>
-              <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 4 }}>
-                {formatDateSafe(workout.date)}
-              </Text>
-            </>
-          )}
-          <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>
-            Duration: {formatDuration(workout.duration_seconds)}
-          </Text>
-        </View>
-
-        {/* Exercise Cards */}
-        {exerciseGroups.map((group) => (
-          <View
-            key={group.exerciseId}
-            style={{
-              backgroundColor: '#1e1e1e',
-              marginHorizontal: 16,
-              marginBottom: 16,
-              padding: 16,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: '#2a2a2a',
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingTop: 60,
+              paddingHorizontal: 24,
+              paddingBottom: 48,
+            }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            {/* Custom Header Row */}
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 24,
             }}>
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: '600', marginBottom: 12 }}>
-              {group.exerciseName}
-            </Text>
-            {group.sets.map((set, index) => (
-              <View
-                key={set.id}
-                style={{
-                  flexDirection: 'row',
-                  paddingVertical: 6,
-                  borderBottomWidth: index < group.sets.length - 1 ? 1 : 0,
-                  borderBottomColor: '#2a2a2a',
-                  alignItems: 'center',
-                }}>
-                <Text style={{ color: '#E5E5E5', fontSize: 14, width: 60 }}>
-                  Set {index + 1}:
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 24, color: '#10b981', marginRight: 8 }}>←</Text>
+                <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={toggleEditMode}>
+                <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>
+                  {isEditing ? 'Save' : 'Edit'}
                 </Text>
-                {isEditing ? (
-                  <>
-                    <TextInput
-                      style={{
-                        color: 'white',
-                        backgroundColor: '#333',
-                        padding: 8,
-                        borderRadius: 6,
-                        fontSize: 14,
-                        borderWidth: 1,
-                        borderColor: '#2a2a2a',
-                        width: 80,
-                        marginRight: 8,
-                      }}
-                      placeholder="lbs"
-                      placeholderTextColor="#999"
-                      keyboardType="numeric"
-                      value={set.weight !== null && !isNaN(set.weight) ? set.weight.toString() : ''}
-                      onChangeText={(text) => {
-                        console.log('UI: Weight Input onChangeText - Set ID:', set.id, 'New Text:', text);
-                        handleSetChange(set.id, 'weight', text);
-                      }}
-                      onBlur={() => {
-                        console.log('UI: Weight Input onBlur - Set ID:', set.id, 'Current Value:', set.weight);
-                      }}
-                      onEndEditing={(e) => {
-                        console.log('UI: Weight Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
-                        handleSetUpdate(set.id, 'weight', e.nativeEvent.text);
-                      }}
-                    />
-                    <Text style={{ color: '#E5E5E5', fontSize: 14, marginRight: 8 }}>×</Text>
-                    <TextInput
-                      style={{
-                        color: 'white',
-                        backgroundColor: '#333',
-                        padding: 8,
-                        borderRadius: 6,
-                        fontSize: 14,
-                        borderWidth: 1,
-                        borderColor: '#2a2a2a',
-                        width: 80,
-                        marginRight: 8,
-                      }}
-                      placeholder="reps"
-                      placeholderTextColor="#999"
-                      keyboardType="numeric"
-                      value={set.reps !== null && !isNaN(set.reps) ? set.reps.toString() : ''}
-                      onChangeText={(text) => {
-                        console.log('UI: Reps Input onChangeText - Set ID:', set.id, 'New Text:', text);
-                        handleSetChange(set.id, 'reps', text);
-                      }}
-                      onBlur={() => {
-                        console.log('UI: Reps Input onBlur - Set ID:', set.id, 'Current Value:', set.reps);
-                      }}
-                      onEndEditing={(e) => {
-                        console.log('UI: Reps Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
-                        handleSetUpdate(set.id, 'reps', e.nativeEvent.text);
-                      }}
-                    />
-                    <TouchableOpacity
-                      onPress={() => handleSetDelete(set.id)}
-                      style={{
-                        padding: 4,
-                        marginLeft: 8,
-                      }}>
-                      <MaterialIcons name="delete" size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <Text style={{ color: '#E5E5E5', fontSize: 14, flex: 1, textAlign: 'right' }}>
-                    {set.weight !== null ? `${set.weight} lbs` : '—'} × {set.reps !== null ? `${set.reps} reps` : '—'}
-                    {set.completed === 1 && (
-                      <Text style={{ color: '#10b981', marginLeft: 8 }}>✓</Text>
-                    )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Workout Summary Card */}
+            <Card variant="default" style={{ marginBottom: 24 }}>
+              {isEditing ? (
+                <>
+                  <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Workout Name</Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontSize: 20,
+                      padding: 12,
+                      marginBottom: 16,
+                    }}
+                    placeholder="Enter workout name"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={editName}
+                    onChangeText={setEditName}
+                  />
+                  <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Date (YYYY-MM-DD)</Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontSize: 20,
+                      padding: 12,
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    value={editDate}
+                    onChangeText={setEditDate}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={{
+                    fontSize: 24,
+                    fontWeight: '700',
+                    color: '#fff',
+                    marginBottom: 4,
+                  }}>
+                    {workout.name || 'Untitled Workout'}
                   </Text>
+                  <Text style={{
+                    fontSize: 15,
+                    color: 'rgba(255,255,255,0.5)',
+                    marginTop: 4,
+                  }}>
+                    {formatDateSafe(workout.date)}
+                  </Text>
+                  {workout.duration_seconds && (
+                    <Text style={{
+                      fontSize: 15,
+                      color: 'rgba(255,255,255,0.5)',
+                      marginTop: 4,
+                    }}>
+                      Duration: {formatDuration(workout.duration_seconds)}
+                    </Text>
+                  )}
+                </>
+              )}
+            </Card>
+
+            {/* Exercise Cards */}
+            {exerciseGroups.map((group) => (
+              <Card
+                key={group.exerciseId}
+                variant="default"
+                style={{ marginBottom: 16, padding: 0 }}>
+                <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' }}>
+                  <Text style={{ fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 12 }}>
+                    {group.exerciseName}
+                  </Text>
+                </View>
+                {group.sets.map((set, index) => (
+                  <View
+                    key={set.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 20,
+                      borderBottomWidth: index < group.sets.length - 1 ? 1 : 0,
+                      borderBottomColor: 'rgba(255,255,255,0.1)',
+                    }}>
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 12,
+                      }}>
+                      <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{index + 1}</Text>
+                    </View>
+                    {isEditing ? (
+                      <>
+                        <TextInput
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontSize: 16,
+                            padding: 8,
+                            paddingHorizontal: 12,
+                            width: 80,
+                            marginRight: 8,
+                          }}
+                          placeholder="lbs"
+                          placeholderTextColor="rgba(255,255,255,0.4)"
+                          keyboardType="numeric"
+                          value={set.weight !== null && !isNaN(set.weight) ? set.weight.toString() : ''}
+                          onChangeText={(text) => {
+                            console.log('UI: Weight Input onChangeText - Set ID:', set.id, 'New Text:', text);
+                            handleSetChange(set.id, 'weight', text);
+                          }}
+                          onBlur={() => {
+                            console.log('UI: Weight Input onBlur - Set ID:', set.id, 'Current Value:', set.weight);
+                          }}
+                          onEndEditing={(e) => {
+                            console.log('UI: Weight Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
+                            handleSetUpdate(set.id, 'weight', e.nativeEvent.text);
+                          }}
+                        />
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, marginRight: 8 }}>×</Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontSize: 16,
+                            padding: 8,
+                            paddingHorizontal: 12,
+                            width: 80,
+                            marginRight: 8,
+                          }}
+                          placeholder="reps"
+                          placeholderTextColor="rgba(255,255,255,0.4)"
+                          keyboardType="numeric"
+                          value={set.reps !== null && !isNaN(set.reps) ? set.reps.toString() : ''}
+                          onChangeText={(text) => {
+                            console.log('UI: Reps Input onChangeText - Set ID:', set.id, 'New Text:', text);
+                            handleSetChange(set.id, 'reps', text);
+                          }}
+                          onBlur={() => {
+                            console.log('UI: Reps Input onBlur - Set ID:', set.id, 'Current Value:', set.reps);
+                          }}
+                          onEndEditing={(e) => {
+                            console.log('UI: Reps Input onEndEditing - Set ID:', set.id, 'Text Value:', e.nativeEvent.text);
+                            handleSetUpdate(set.id, 'reps', e.nativeEvent.text);
+                          }}
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleSetDelete(set.id)}
+                          style={{
+                            padding: 4,
+                            marginLeft: 'auto',
+                          }}>
+                          <MaterialIcons name="delete" size={20} color="#ef4444" />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 16, color: '#fff' }}>
+                          {`${set.weight !== null ? set.weight + ' lbs' : '—'} × ${set.reps !== null ? set.reps + ' reps' : '—'}`}
+                        </Text>
+                        {set.completed === 1 && (
+                          <Text style={{ color: '#10b981', fontSize: 18, marginLeft: 8 }}>✓</Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                ))}
+                {/* Add Set Button (only visible when editing) */}
+                {isEditing && (
+                  <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }}>
+                    <Button
+                      title="+ Add Set"
+                      onPress={() => handleAddSet(group.exerciseId)}
+                      variant="secondary"
+                      size="small"
+                    />
+                  </View>
                 )}
-              </View>
+              </Card>
             ))}
-            {/* Add Set Button (only visible when editing) */}
+
+            {exerciseGroups.length === 0 && !isEditing && (
+              <View style={{ padding: 32, alignItems: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No exercises recorded for this workout</Text>
+              </View>
+            )}
+
+            {/* Add Exercise Button (only visible when editing) */}
+            {isEditing && (
+              <Card
+                variant="default"
+                onPress={handleAddExercise}
+                style={{
+                  borderStyle: 'dashed',
+                  borderColor: 'rgba(255,255,255,0.2)',
+                  backgroundColor: 'rgba(255,255,255,0.02)',
+                  alignItems: 'center',
+                  padding: 24,
+                  marginTop: 16,
+                }}>
+                <Text style={{ fontSize: 32, color: '#10b981', marginBottom: 8 }}>+</Text>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#fff' }}>Add Exercise</Text>
+              </Card>
+            )}
+
+            {/* Delete Button (only visible when editing) */}
             {isEditing && (
               <Pressable
-                onPress={() => handleAddSet(group.exerciseId)}
+                onPress={handleDelete}
                 style={{
-                  marginTop: 12,
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: '#10b981',
-                  borderStyle: 'dashed',
+                  backgroundColor: '#ef4444',
+                  paddingHorizontal: 24,
+                  paddingVertical: 14,
+                  borderRadius: 12,
                   alignItems: 'center',
+                  marginTop: 24,
                 }}>
-                <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '600' }}>+ Add Set</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>Delete Workout</Text>
               </Pressable>
             )}
-          </View>
-        ))}
-
-        {exerciseGroups.length === 0 && !isEditing && (
-          <View style={{ padding: 32, alignItems: 'center' }}>
-            <Text style={{ color: '#666', fontSize: 14 }}>No exercises recorded for this workout</Text>
-          </View>
-        )}
-
-        {/* Add Exercise Button (only visible when editing) */}
-        {isEditing && (
-          <View style={{ marginHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
-            <Pressable
-              onPress={handleAddExercise}
-              style={{
-                backgroundColor: '#1e1e1e',
-                paddingHorizontal: 32,
-                paddingVertical: 16,
-                borderRadius: 12,
-                borderWidth: 2,
-                borderColor: '#10b981',
-                borderStyle: 'dashed',
-                alignItems: 'center',
-              }}>
-              <Text style={{ color: '#10b981', fontSize: 18, fontWeight: '600' }}>+ Add Exercise</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Delete Button (only visible when editing) */}
-        {isEditing && (
-          <View style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 32 }}>
-            <Pressable
-              onPress={handleDelete}
-              style={{
-                backgroundColor: '#ef4444',
-                paddingHorizontal: 24,
-                paddingVertical: 16,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}>
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>Delete Workout</Text>
-            </Pressable>
-          </View>
-        )}
           </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
 
-      {/* Exercise Picker Modal */}
-      <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                borderBottomWidth: 1,
-                borderBottomColor: '#2a2a2a',
-              }}>
-              <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Select Exercise</Text>
-              <Pressable onPress={() => setShowExerciseModal(false)}>
-                <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>Close</Text>
-              </Pressable>
+          {/* Exercise Picker Modal */}
+          <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#2a2a2a',
+                  }}>
+                  <Text style={{ color: 'white', fontSize: 20, fontWeight: '600' }}>Select Exercise</Text>
+                  <Pressable onPress={() => setShowExerciseModal(false)}>
+                    <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '600' }}>Close</Text>
+                  </Pressable>
+                </View>
+                <FlatList
+                  data={EXERCISES}
+                  renderItem={renderExerciseItem}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={{ paddingVertical: 8 }}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
             </View>
-            <FlatList
-              data={EXERCISES}
-              renderItem={renderExerciseItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingVertical: 8 }}
-              showsVerticalScrollIndicator={false}
-            />
-          </View>
+          </Modal>
         </View>
-      </Modal>
-    </>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
