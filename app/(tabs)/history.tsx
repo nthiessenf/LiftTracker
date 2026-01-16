@@ -1,9 +1,9 @@
-import { CardStyles } from '@/constants/Typography';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { Card } from '../../components/ui';
 
 type Workout = {
   id: string;
@@ -206,80 +206,52 @@ export default function HistoryScreen() {
     setSelectedDate(day.dateString);
   };
 
-  const renderWorkoutItem = ({ item }: { item: Workout }) => {
-    return (
-      <Pressable
-        onPress={() => handleViewWorkout(item.id)}
-        style={({ pressed }) => [
-          CardStyles.base,
-          {
-            marginHorizontal: 16,
-            marginVertical: 8,
-            padding: 16,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          },
-          pressed && CardStyles.pressed,
-        ]}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
-            {item.name || 'Untitled Workout'}
-          </Text>
-          <Text style={{ color: '#E5E5E5', fontSize: 14, marginBottom: 2 }}>
-            {formatDateString(item.date)}
-          </Text>
-          <Text style={{ color: '#999', fontSize: 12 }}>
-            {formatDuration(item.duration_seconds)}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
-            handleDelete(item.id);
-          }}
-          style={{
-            padding: 8,
-            marginLeft: 12,
-          }}>
-          <Text style={{ color: '#ef4444', fontSize: 18 }}>🗑️</Text>
-        </TouchableOpacity>
-      </Pressable>
-    );
-  };
-
-  // Calendar theme matching app's dark theme
+  // Calendar theme matching app's dark theme with updated styling
   const calendarTheme = {
-    backgroundColor: '#121212',
-    calendarBackground: '#121212',
-    textSectionTitleColor: '#E5E5E5',
+    backgroundColor: 'transparent',
+    calendarBackground: 'transparent',
+    textSectionTitleColor: 'rgba(255,255,255,0.4)',
     selectedDayBackgroundColor: '#10b981',
     selectedDayTextColor: '#ffffff',
     todayTextColor: '#10b981',
-    dayTextColor: '#ffffff',
-    textDisabledColor: '#666',
+    dayTextColor: 'rgba(255,255,255,0.8)',
+    textDisabledColor: 'rgba(255,255,255,0.2)',
     dotColor: '#10b981',
     selectedDotColor: '#ffffff',
-    arrowColor: '#10b981',
-    monthTextColor: '#ffffff',
+    arrowColor: 'rgba(255,255,255,0.5)',
+    monthTextColor: '#fff',
     indicatorColor: '#10b981',
     textDayFontWeight: '400',
     textMonthFontWeight: '600',
-    textDayHeaderFontWeight: '600',
+    textDayHeaderFontWeight: '500',
     textDayFontSize: 16,
     textMonthFontSize: 18,
-    textDayHeaderFontSize: 14,
+    textDayHeaderFontSize: 12,
   };
 
   return (
     <View style={{ backgroundColor: '#121212', flex: 1 }}>
-      <View style={{ paddingTop: 40, paddingBottom: 16, paddingHorizontal: 16 }}>
-        <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold' }}>History</Text>
-      </View>
-      
-      {/* Calendar Section */}
-      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <View style={[CardStyles.base, { padding: 8 }]}>
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: 80,
+          paddingHorizontal: 24,
+          paddingBottom: 24,
+        }}
+        showsVerticalScrollIndicator={false}>
+        {/* Page Title */}
+        <Text style={{
+          fontSize: 32,
+          fontWeight: '700',
+          letterSpacing: -0.5,
+          color: '#fff',
+          marginBottom: 24,
+        }}>
+          History
+        </Text>
+
+        {/* Calendar Card */}
+        <Card variant="default" style={{ marginBottom: 24, padding: 24 }}>
           <Calendar
             onDayPress={handleDayPress}
             markedDates={markedDates}
@@ -290,28 +262,51 @@ export default function HistoryScreen() {
               backgroundColor: 'transparent',
             }}
           />
-        </View>
-      </View>
+        </Card>
 
-      {/* Workouts for Selected Date */}
-      <View style={{ flex: 1 }}>
+        {/* Workouts for Selected Date */}
         {filteredWorkouts.length === 0 ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-            <Text style={{ color: '#E5E5E5', fontSize: 16, textAlign: 'center' }}>
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 32 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, textAlign: 'center' }}>
               {history.length === 0
                 ? 'No workouts yet. Start your first workout to see it here!'
                 : `No workouts logged for ${selectedDate ? formatDateString(selectedDate) : 'this date'}.`}
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={filteredWorkouts}
-            renderItem={renderWorkoutItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
+          <View style={{ marginTop: 24 }}>
+            {filteredWorkouts.map((item) => (
+              <Card
+                key={item.id}
+                variant="default"
+                onPress={() => handleViewWorkout(item.id)}
+                style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600', marginBottom: 4 }}>
+                      {item.name || 'Untitled Workout'}
+                    </Text>
+                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+                      {formatDateString(item.date)} • {formatDuration(item.duration_seconds)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id);
+                    }}
+                    style={{
+                      padding: 8,
+                      marginLeft: 12,
+                    }}>
+                    <Text style={{ color: '#ef4444', fontSize: 18 }}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
+              </Card>
+            ))}
+          </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
