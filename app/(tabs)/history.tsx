@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { Card } from '../../components/ui';
 
@@ -264,47 +264,102 @@ export default function HistoryScreen() {
           />
         </Card>
 
+        {/* Section Header */}
+        {history && history.length > 0 ? (
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '600',
+            color: '#fff',
+            marginTop: 32,
+            marginBottom: 16,
+          }}>
+            Recent Workouts
+          </Text>
+        ) : (
+          <Text style={{
+            fontSize: 15,
+            color: 'rgba(255,255,255,0.5)',
+            textAlign: 'center',
+            marginTop: 48,
+          }}>
+            No workouts yet. Complete a workout to see it here!
+          </Text>
+        )}
+
         {/* Workouts for Selected Date */}
-        {filteredWorkouts.length === 0 ? (
+        {filteredWorkouts.length === 0 && history.length > 0 ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 32 }}>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16, textAlign: 'center' }}>
-              {history.length === 0
-                ? 'No workouts yet. Start your first workout to see it here!'
-                : `No workouts logged for ${selectedDate ? formatDateString(selectedDate) : 'this date'}.`}
+              No workouts logged for {selectedDate ? formatDateString(selectedDate) : 'this date'}.
             </Text>
           </View>
         ) : (
-          <View style={{ marginTop: 24 }}>
-            {filteredWorkouts.map((item) => (
-              <Card
-                key={item.id}
-                variant="default"
-                onPress={() => handleViewWorkout(item.id)}
-                style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600', marginBottom: 4 }}>
-                      {item.name || 'Untitled Workout'}
-                    </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-                      {formatDateString(item.date)} • {formatDuration(item.duration_seconds)}
-                    </Text>
+          filteredWorkouts.length > 0 && (
+            <View style={{ marginTop: 0 }}>
+              {filteredWorkouts.map((item) => (
+                <Card
+                  key={item.id}
+                  variant="default"
+                  onPress={() => handleViewWorkout(item.id)}
+                  style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600', marginBottom: 4 }}>
+                        {item.name || 'Untitled Workout'}
+                      </Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+                        {formatDateString(item.date)} • {formatDuration(item.duration_seconds)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Alert.alert(
+                          'Workout Options',
+                          item.name || 'Freestyle Workout',
+                          [
+                            {
+                              text: 'View Details',
+                              onPress: () => router.push(`/history/${item.id}`)
+                            },
+                            {
+                              text: 'Delete Workout',
+                              onPress: () => {
+                                Alert.alert(
+                                  'Delete Workout',
+                                  'Are you sure? This cannot be undone.',
+                                  [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    {
+                                      text: 'Delete',
+                                      style: 'destructive',
+                                      onPress: () => handleDelete(item.id)
+                                    }
+                                  ]
+                                );
+                              },
+                              style: 'destructive'
+                            },
+                            { text: 'Cancel', style: 'cancel' }
+                          ]
+                        );
+                      }}
+                      style={{
+                        padding: 8,
+                      }}>
+                      <Text style={{
+                        fontSize: 20,
+                        color: 'rgba(255,255,255,0.4)',
+                        letterSpacing: 2
+                      }}>
+                        •••
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDelete(item.id);
-                    }}
-                    style={{
-                      padding: 8,
-                      marginLeft: 12,
-                    }}>
-                    <Text style={{ color: '#ef4444', fontSize: 18 }}>🗑️</Text>
-                  </TouchableOpacity>
-                </View>
-              </Card>
-            ))}
-          </View>
+                </Card>
+              ))}
+            </View>
+          )
         )}
       </ScrollView>
     </View>
