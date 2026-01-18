@@ -84,6 +84,13 @@ export default function SettingsScreen() {
     }
   };
 
+  const resetOnboarding = async () => {
+    await AsyncStorage.removeItem('HAS_COMPLETED_ONBOARDING');
+    Alert.alert('Reset Complete', 'Onboarding will show on next app launch', [
+      { text: 'Go to Onboarding', onPress: () => router.replace('/onboarding') }
+    ]);
+  };
+
   return (
     <View style={{ backgroundColor: '#121212', flex: 1 }}>
       <ScrollView
@@ -262,7 +269,7 @@ export default function SettingsScreen() {
         </Text>
 
         {/* Version Card */}
-        <Card variant="default" style={{ marginBottom: 16 }}>
+        <Card variant="default" style={{ marginBottom: 32 }}>
           <Text style={{
             fontSize: 17,
             fontWeight: '600',
@@ -278,6 +285,40 @@ export default function SettingsScreen() {
             1.0.0
           </Text>
         </Card>
+
+        {/* TEMPORARY: Reset Onboarding Button */}
+        <Text style={{
+          fontSize: 12,
+          fontWeight: '600',
+          color: 'rgba(255,255,255,0.4)',
+          letterSpacing: 1,
+          marginTop: 8,
+          marginBottom: 12,
+          textTransform: 'uppercase',
+        }}>
+          TESTING
+        </Text>
+        <Pressable
+          onPress={resetOnboarding}
+          style={{
+            backgroundColor: '#f59e0b',
+            paddingHorizontal: 24,
+            paddingVertical: 16,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 32,
+            borderWidth: 2,
+            borderColor: '#d97706',
+          }}>
+          <Text style={{
+            color: '#FFFFFF',
+            fontSize: 16,
+            fontWeight: '700',
+          }}>
+            ⚠️ Reset Onboarding (TEMPORARY)
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
