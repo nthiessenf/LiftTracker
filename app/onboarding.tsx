@@ -103,16 +103,16 @@ export default function OnboardingScreen() {
         <View key="welcome" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 60 }}>
           {/* Background gradient orb */}
           <LinearGradient
-            colors={['rgba(16,185,129,0.3)', 'rgba(16,185,129,0.1)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            colors={['rgba(16,185,129,0.2)', 'rgba(16,185,129,0.05)', 'transparent']}
+            start={{ x: 1, y: 0 }}
+            end={{ x: 0, y: 1 }}
             style={{
               position: 'absolute',
-              top: -150,
-              right: -150,
-              width: 350,
-              height: 350,
-              borderRadius: 175,
+              top: -50,
+              right: -50,
+              width: 300,
+              height: 300,
+              borderRadius: 150,
             }}
           />
 
@@ -145,7 +145,7 @@ export default function OnboardingScreen() {
               How do you like to train?
             </Text>
             <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginBottom: 32, textAlign: 'center' }}>
-              Pick a style to get pre-built routines
+              Choose your training style
             </Text>
 
             {/* Track Cards */}
@@ -176,14 +176,11 @@ export default function OnboardingScreen() {
                       borderColor: isSelected ? '#10b981' : 'rgba(255,255,255,0.1)',
                       marginBottom: 16,
                     }}>
-                    <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 }}>
+                    <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 8 }}>
                       {track.name}
                     </Text>
-                    <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-                      {track.description}
-                    </Text>
                     {nudgeText && (
-                      <Text style={{ fontSize: 14, color: '#10b981' }}>
+                      <Text style={{ fontSize: 15, color: '#10b981' }}>
                         {nudgeText}
                       </Text>
                     )}
@@ -193,13 +190,21 @@ export default function OnboardingScreen() {
             </View>
 
             {/* Skip Option */}
-            <Pressable onPress={handleSkip} disabled={loading} style={{ alignItems: 'center', marginTop: 8 }}>
-              <Text style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', marginBottom: 4, textDecorationLine: 'underline' }}>
-                Skip for now
-              </Text>
-              <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
-                You can add or change routines anytime
-              </Text>
+            <Pressable onPress={handleSkip} disabled={loading} style={{ marginTop: 24 }}>
+              <View style={{
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                paddingVertical: 16,
+                paddingHorizontal: 24,
+                borderRadius: 16,
+                alignItems: 'center',
+              }}>
+                <Text style={{ fontSize: 17, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>
+                  Skip for now
+                </Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>
+                  You can add or change routines anytime
+                </Text>
+              </View>
             </Pressable>
           </ScrollView>
         </View>
