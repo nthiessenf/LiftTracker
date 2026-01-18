@@ -18,6 +18,7 @@ type Routine = {
 export default function WorkoutsScreen() {
   const db = useSQLiteContext();
   const [userRoutines, setUserRoutines] = useState<Routine[]>([]);
+  const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[]; estimatedDuration: number } | null>(null);
 
   const loadUserRoutines = useCallback(async () => {
     try {
@@ -55,9 +56,63 @@ export default function WorkoutsScreen() {
       );
 
       setUserRoutines(routinesWithExercises);
+
+      // Determine next workout using routine_id rotation (same logic as Dashboard)
+      if (routines.length === 0) {
+        setNextWorkout(null);
+      } else {
+        // Get the most recent workout's routine_id
+        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
+          'SELECT routine_id FROM workouts ORDER BY date DESC LIMIT 1'
+        );
+
+        // Get all routines ordered by id ASC (for consistent rotation)
+        const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
+          'SELECT id, name FROM routines ORDER BY id ASC'
+        );
+
+        let nextRoutineIndex = 0; // Default to first routine
+
+        // Rotation logic
+        if (lastWorkout?.routine_id) {
+          // Find the index of the last workout's routine
+          const lastRoutineIndex = allRoutines.findIndex((r) => r.id === lastWorkout.routine_id);
+          
+          if (lastRoutineIndex !== -1) {
+            // Routine found: rotate to next (wrap around with modulo)
+            nextRoutineIndex = (lastRoutineIndex + 1) % allRoutines.length;
+          }
+        }
+
+        // Safety check: ensure nextRoutineIndex is valid
+        if (nextRoutineIndex >= 0 && nextRoutineIndex < allRoutines.length) {
+          const nextRoutine = allRoutines[nextRoutineIndex];
+
+          // Get exercise IDs for the next routine
+          const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+            'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+            [nextRoutine.id]
+          );
+
+          const exerciseIds = routineExercises.map((row) => row.exercise_id);
+          
+          // Get estimated duration
+          const estimatedDuration = await getRoutineDurationEstimate(db, nextRoutine.id);
+
+          setNextWorkout({
+            id: nextRoutine.id,
+            name: nextRoutine.name,
+            exerciseIds: exerciseIds,
+            estimatedDuration,
+          });
+        } else {
+          setNextWorkout(null);
+        }
+      }
     } catch (error) {
       console.error('Error loading routines:', error);
       setUserRoutines([]);
+      setNextWorkout(null);
     }
   }, [db]);
 
@@ -75,6 +130,38 @@ export default function WorkoutsScreen() {
         exerciseIds: routine.exerciseIds.join(','),
       },
     });
+  };
+
+  const handleStartNextWorkout = () => {
+    if (nextWorkout) {
+      router.push({
+        pathname: '/session/active',
+        params: {
+          templateId: nextWorkout.id,
+          exerciseIds: nextWorkout.exerciseIds.join(','),
+        },
+      });
+    }
+  };
+
+  const getRecommendationContext = (): string => {
+    if (!nextWorkout) return '';
+    
+    // Find the recommended routine in userRoutines to get last performed date
+    const recommendedRoutine = userRoutines.find((r) => r.id === nextWorkout.id);
+    
+    if (recommendedRoutine?.lastPerformed) {
+      const daysAgo = getDaysAgo(recommendedRoutine.lastPerformed);
+      if (daysAgo === 'Never') {
+        return 'Next in your rotation';
+      } else if (daysAgo === 'Today' || daysAgo === 'Yesterday') {
+        return 'Next in your rotation';
+      } else {
+        return `Last done ${daysAgo}`;
+      }
+    }
+    
+    return 'Next in your rotation';
   };
 
   const handleCreateRoutine = () => {
@@ -321,6 +408,45 @@ export default function WorkoutsScreen() {
         }}>
           Workouts
         </Text>
+
+        {/* Recommended for Today Card */}
+        {nextWorkout && (
+          <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 24 }}>
+            <Text style={{ 
+              color: '#10b981', 
+              fontSize: 12, 
+              fontWeight: '600',
+              letterSpacing: 1,
+              marginBottom: 8,
+              textTransform: 'uppercase'
+            }}>
+              RECOMMENDED FOR TODAY
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ 
+                  color: '#FFFFFF', 
+                  fontSize: 22, 
+                  fontWeight: '700',
+                  marginBottom: 4
+                }}>
+                  {nextWorkout.name}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 4 }}>
+                  {nextWorkout.exerciseIds.length} {nextWorkout.exerciseIds.length === 1 ? 'exercise' : 'exercises'}
+                  {nextWorkout.estimatedDuration > 0 && ` • ~${formatDuration(nextWorkout.estimatedDuration)}`}
+                </Text>
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                  {getRecommendationContext()}
+                </Text>
+              </View>
+              <Button 
+                title="Start →" 
+                onPress={handleStartNextWorkout} 
+              />
+            </View>
+          </Card>
+        )}
 
         {/* Hero Card: Start Empty Workout */}
         <Pressable
