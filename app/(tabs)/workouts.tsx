@@ -22,24 +22,25 @@ export default function WorkoutsScreen() {
 
   const loadUserRoutines = useCallback(async () => {
     try {
-      // Fetch all routines
-      const routines = await db.getAllAsync<{ id: string; name: string }>(
-        'SELECT id, name FROM routines ORDER BY created_at DESC'
+      // Fetch all routines with last_used_date, sorted by last used (most recent first), then alphabetically
+      // SQLite puts NULLs last when using DESC, so routines never used appear at bottom
+      const routines = await db.getAllAsync<{ id: string; name: string; last_used_date: string | null }>(
+        `SELECT 
+          r.id, 
+          r.name, 
+          (SELECT MAX(date) FROM workouts WHERE routine_id = r.id) as last_used_date
+        FROM routines r 
+        WHERE r.is_temporary = 0 
+        ORDER BY last_used_date DESC, r.name ASC`
       );
       console.log('DEBUG - Routines found:', routines.length, routines);
 
-      // For each routine, fetch associated exercise IDs, last performed date, and estimated duration
+      // For each routine, fetch associated exercise IDs and estimated duration
       const routinesWithExercises: Routine[] = await Promise.all(
         routines.map(async (routine) => {
           const exerciseRows = await db.getAllAsync<{ exercise_id: string }>(
             'SELECT exercise_id FROM routine_exercises WHERE routine_id = ? ORDER BY order_index ASC',
             [routine.id]
-          );
-          
-          // Find the most recent workout that matches this routine name
-          const lastWorkout = await db.getFirstAsync<{ date: string }>(
-            'SELECT date FROM workouts WHERE name = ? ORDER BY date DESC LIMIT 1',
-            [routine.name]
           );
           
           // Get estimated duration
@@ -49,7 +50,7 @@ export default function WorkoutsScreen() {
             id: routine.id,
             name: routine.name,
             exerciseIds: exerciseRows.map((row) => row.exercise_id),
-            lastPerformed: lastWorkout?.date || null,
+            lastPerformed: routine.last_used_date || null,
             estimatedDuration,
           };
         })
