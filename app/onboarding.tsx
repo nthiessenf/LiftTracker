@@ -102,24 +102,26 @@ export default function OnboardingScreen() {
         {/* Screen 1 - Welcome */}
         <View key="welcome" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 60 }}>
           {/* Background gradient orb */}
-          <View style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, opacity: 0.3 }}>
-            <LinearGradient
-              colors={['#10b981', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ flex: 1, borderRadius: 150 }}
-            />
-          </View>
+          <LinearGradient
+            colors={['rgba(16,185,129,0.3)', 'rgba(16,185,129,0.1)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: 'absolute',
+              top: -150,
+              right: -150,
+              width: 350,
+              height: 350,
+              borderRadius: 175,
+            }}
+          />
 
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <Text style={{ fontSize: 36, fontWeight: '700', color: '#FFFFFF', letterSpacing: -1, marginBottom: 16, textAlign: 'center' }}>
               LiftTrack
             </Text>
-            <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 48 }}>
+            <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
               Track your lifts. Beat your best.
-            </Text>
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-              🔒 Your data stays on your device
             </Text>
           </View>
 
@@ -143,7 +145,7 @@ export default function OnboardingScreen() {
               How do you like to train?
             </Text>
             <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginBottom: 32, textAlign: 'center' }}>
-              Choose a style to get started with pre-built routines.
+              Pick a style to get pre-built routines
             </Text>
 
             {/* Track Cards */}
@@ -169,9 +171,10 @@ export default function OnboardingScreen() {
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       borderRadius: 20,
-                      padding: 20,
+                      padding: 24,
                       borderWidth: 1,
                       borderColor: isSelected ? '#10b981' : 'rgba(255,255,255,0.1)',
+                      marginBottom: 16,
                     }}>
                     <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 }}>
                       {track.name}
@@ -180,13 +183,10 @@ export default function OnboardingScreen() {
                       {track.description}
                     </Text>
                     {nudgeText && (
-                      <Text style={{ fontSize: 13, color: '#10b981', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 14, color: '#10b981' }}>
                         {nudgeText}
                       </Text>
                     )}
-                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                      {track.routines.length} {track.routines.length === 1 ? 'routine' : 'routines'}
-                    </Text>
                   </Pressable>
                 );
               })}
@@ -194,10 +194,10 @@ export default function OnboardingScreen() {
 
             {/* Skip Option */}
             <Pressable onPress={handleSkip} disabled={loading} style={{ alignItems: 'center', marginTop: 8 }}>
-              <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
+              <Text style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', marginBottom: 4, textDecorationLine: 'underline' }}>
                 Skip for now
               </Text>
-              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+              <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
                 You can add or change routines anytime
               </Text>
             </Pressable>
@@ -215,7 +215,7 @@ export default function OnboardingScreen() {
             </Text>
 
             {/* Number Selector */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 64 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 60, marginBottom: 64 }}>
               <Pressable
                 onPress={() => setWeeklyGoal(Math.max(1, weeklyGoal - 1))}
                 disabled={weeklyGoal <= 1}
@@ -269,28 +269,17 @@ export default function OnboardingScreen() {
         {/* Screen 4 - You're Ready */}
         <View key="ready" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 100 }}>
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 32, textAlign: 'center' }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', textAlign: 'center' }}>
               You're all set! 🎉
             </Text>
-
-            {/* Summary Card */}
-            <View style={{
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              borderRadius: 20,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-              marginBottom: 24,
-            }}>
-              {selectedTrack && (
-                <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginBottom: 12, textAlign: 'center' }}>
-                  Your {getSelectedTrackName()} routines are ready
-                </Text>
-              )}
-              <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-                Goal: {weeklyGoal} {weeklyGoal === 1 ? 'workout' : 'workouts'} per week
+            {selectedTrack && (
+              <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginTop: 24, textAlign: 'center' }}>
+                Your {getSelectedTrackName()} routines are ready
               </Text>
-            </View>
+            )}
+            <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.6)', marginTop: 24, textAlign: 'center' }}>
+              Goal: {weeklyGoal} {weeklyGoal === 1 ? 'workout' : 'workouts'} per week
+            </Text>
           </View>
 
           <Pressable
