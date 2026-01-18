@@ -154,15 +154,15 @@ export default function WorkoutsScreen() {
     if (recommendedRoutine?.lastPerformed) {
       const daysAgo = getDaysAgo(recommendedRoutine.lastPerformed);
       if (daysAgo === 'Never') {
-        return 'Next in your rotation';
+        return '';
       } else if (daysAgo === 'Today' || daysAgo === 'Yesterday') {
-        return 'Next in your rotation';
+        return '';
       } else {
         return `Last done ${daysAgo}`;
       }
     }
     
-    return 'Next in your rotation';
+    return '';
   };
 
   const handleCreateRoutine = () => {
@@ -337,27 +337,17 @@ export default function WorkoutsScreen() {
       <Card
         variant="default"
         onPress={() => handleCardPress(item.id)}
-        style={{ marginHorizontal: 24, marginBottom: 16 }}>
+        style={{ marginHorizontal: 24, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* LEFT SIDE: Text Info */}
           <View style={{ flex: 1, marginRight: 16 }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
               {item.name}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                Last: {lastPerformedText}
-              </Text>
-              {item.estimatedDuration > 0 && (
-                <>
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginHorizontal: 6 }}>•</Text>
-                  <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.4)" style={{ marginRight: 4 }} />
-                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                    {formatDuration(item.estimatedDuration)}
-                  </Text>
-                </>
-              )}
-            </View>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+              Last: {lastPerformedText}
+              {item.estimatedDuration > 0 && ` • ~${formatDuration(item.estimatedDuration)}`}
+            </Text>
           </View>
 
           {/* RIGHT SIDE: Actions */}
@@ -410,44 +400,64 @@ export default function WorkoutsScreen() {
           Workouts
         </Text>
 
-        {/* Recommended for Today Card */}
+        {/* TODAY'S RECOMMENDATION Section */}
         {nextWorkout && (
-          <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 24 }}>
+          <>
             <Text style={{ 
-              color: '#10b981', 
+              color: 'rgba(255,255,255,0.5)', 
               fontSize: 12, 
-              fontWeight: '600',
+              fontWeight: '600', 
               letterSpacing: 1,
-              marginBottom: 8,
+              marginBottom: 12,
+              marginHorizontal: 24,
               textTransform: 'uppercase'
             }}>
-              RECOMMENDED FOR TODAY
+              TODAY'S RECOMMENDATION
             </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  color: '#FFFFFF', 
-                  fontSize: 22, 
-                  fontWeight: '700',
-                  marginBottom: 4
-                }}>
-                  {nextWorkout.name}
-                </Text>
-                {nextWorkout.estimatedDuration > 0 && (
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 4 }}>
-                    ~{formatDuration(nextWorkout.estimatedDuration)}
+            <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 0 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ 
+                    color: '#FFFFFF', 
+                    fontSize: 22, 
+                    fontWeight: '700',
+                    marginBottom: 4
+                  }}>
+                    {nextWorkout.name}
                   </Text>
-                )}
-                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-                  {getRecommendationContext()}
-                </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    {nextWorkout.estimatedDuration > 0 && `~${formatDuration(nextWorkout.estimatedDuration)}`}
+                    {nextWorkout.estimatedDuration > 0 && getRecommendationContext() && ' • '}
+                    {getRecommendationContext()}
+                  </Text>
+                </View>
+                <Button 
+                  title="Start →" 
+                  onPress={handleStartNextWorkout} 
+                />
               </View>
-              <Button 
-                title="Start →" 
-                onPress={handleStartNextWorkout} 
-              />
-            </View>
-          </Card>
+            </Card>
+          </>
+        )}
+
+        {/* "or" Divider */}
+        {nextWorkout && (
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginVertical: 24,
+            marginHorizontal: 24
+          }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <Text style={{ 
+              color: 'rgba(255,255,255,0.4)', 
+              fontSize: 13, 
+              marginHorizontal: 16 
+            }}>
+              or
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+          </View>
         )}
 
         {/* Hero Card: Start Empty Workout */}
@@ -476,10 +486,18 @@ export default function WorkoutsScreen() {
           <MaterialIcons name="chevron-right" size={20} color="#10b981" />
         </Pressable>
 
-        {/* Routines Header */}
-        <View style={{ marginHorizontal: 24, marginTop: 32, marginBottom: 16 }}>
+        {/* YOUR ROUTINES Header */}
+        <View style={{ marginHorizontal: 24, marginTop: 0, marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600' }}>Routines</Text>
+            <Text style={{ 
+              color: 'rgba(255,255,255,0.5)', 
+              fontSize: 12, 
+              fontWeight: '600',
+              letterSpacing: 1,
+              textTransform: 'uppercase'
+            }}>
+              YOUR ROUTINES
+            </Text>
             <TouchableOpacity
               onPress={handleCreateRoutine}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -489,10 +507,12 @@ export default function WorkoutsScreen() {
         </View>
 
         {/* Routine Cards */}
-        {userRoutines.length > 0 ? (
-          userRoutines.map((routine) => (
-            <View key={routine.id}>{renderRoutineItem({ item: routine })}</View>
-          ))
+        {userRoutines.filter((routine) => routine.id !== nextWorkout?.id).length > 0 ? (
+          userRoutines
+            .filter((routine) => routine.id !== nextWorkout?.id)
+            .map((routine) => (
+              <View key={routine.id}>{renderRoutineItem({ item: routine })}</View>
+            ))
         ) : (
           <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontStyle: 'italic' }}>
