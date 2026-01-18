@@ -432,10 +432,11 @@ export default function WorkoutsScreen() {
                 }}>
                   {nextWorkout.name}
                 </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 4 }}>
-                  {nextWorkout.exerciseIds.length} {nextWorkout.exerciseIds.length === 1 ? 'exercise' : 'exercises'}
-                  {nextWorkout.estimatedDuration > 0 && ` • ~${formatDuration(nextWorkout.estimatedDuration)}`}
-                </Text>
+                {nextWorkout.estimatedDuration > 0 && (
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 4 }}>
+                    ~{formatDuration(nextWorkout.estimatedDuration)}
+                  </Text>
+                )}
                 <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
                   {getRecommendationContext()}
                 </Text>

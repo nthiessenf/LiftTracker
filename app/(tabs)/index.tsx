@@ -8,7 +8,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card } from '../../components/ui';
+import { Card } from '../../components/ui';
 
 type WorkoutSession = {
   id: string;
@@ -29,7 +29,6 @@ export default function DashboardScreen() {
   const db = useSQLiteContext();
   const [weeklyProgress, setWeeklyProgress] = useState<DayStatus[]>([]);
   const [workoutCount, setWorkoutCount] = useState(0);
-  const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[] } | null>(null);
   const [weeklyGoal, setWeeklyGoal] = useState(3);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showGoalModal, setShowGoalModal] = useState(false);
@@ -183,65 +182,15 @@ export default function DashboardScreen() {
       const streak = calculateStreak(workoutDates);
       setCurrentStreak(streak);
 
-      // Determine next workout using routine_id rotation
-      // Step A: Fetch ALL routines ordered by creation
+      // Check if routines exist for empty state card
       const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
         'SELECT id, name FROM routines ORDER BY id ASC'
       );
-      console.log('DEBUG - Dashboard routines found:', allRoutines.length, allRoutines);
-
-      // Track if routines exist for empty state
       setHasRoutines(allRoutines.length > 0);
-
-      if (allRoutines.length === 0) {
-        setNextWorkout(null);
-      } else {
-        // Step B: Get the most recent workout's routine_id
-        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
-          'SELECT routine_id FROM workouts ORDER BY date DESC LIMIT 1'
-        );
-
-        let nextRoutineIndex = 0; // Default to first routine
-
-        // Step C: Rotation logic
-        if (lastWorkout?.routine_id) {
-          // Find the index of the last workout's routine
-          const lastRoutineIndex = allRoutines.findIndex((r) => r.id === lastWorkout.routine_id);
-          
-          if (lastRoutineIndex !== -1) {
-            // Routine found: rotate to next (wrap around with modulo)
-            nextRoutineIndex = (lastRoutineIndex + 1) % allRoutines.length;
-          }
-          // If routine_id not found in list, keep default (index 0)
-        }
-        // If no routine_id (legacy data), keep default (index 0)
-
-        // Safety check: ensure nextRoutineIndex is valid
-        if (nextRoutineIndex >= 0 && nextRoutineIndex < allRoutines.length) {
-          const nextRoutine = allRoutines[nextRoutineIndex];
-
-          // Get exercise IDs for the next routine
-          const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
-            'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
-            [nextRoutine.id]
-          );
-
-          const exerciseIds = routineExercises.map((row) => row.exercise_id);
-
-          setNextWorkout({
-            id: nextRoutine.id,
-            name: nextRoutine.name,
-            exerciseIds: exerciseIds,
-          });
-        } else {
-          setNextWorkout(null);
-        }
-      }
     } catch (error) {
       console.error('Error loading weekly progress:', error);
       setWeeklyProgress([]);
       setWorkoutCount(0);
-      setNextWorkout(null);
       setHasRoutines(false);
     }
   }, [db]);
@@ -252,17 +201,6 @@ export default function DashboardScreen() {
     }, [loadWeeklyProgress])
   );
 
-  const handleStartNextWorkout = () => {
-    if (nextWorkout) {
-      router.push({
-        pathname: '/session/active',
-        params: {
-          templateId: nextWorkout.id,
-          exerciseIds: nextWorkout.exerciseIds.join(','),
-        },
-      });
-    }
-  };
 
   const getDayLabel = (date: Date): string => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -597,40 +535,25 @@ export default function DashboardScreen() {
           </Text>
         </Card>
 
-        {/* Recommended for Today Card */}
-        {nextWorkout ? (
-          <Card variant="accent" style={{ marginHorizontal: 24, marginTop: 16 }}>
-            <Text style={{ 
-              color: '#10b981', 
-              fontSize: 12, 
-              fontWeight: '600',
-              letterSpacing: 1,
-              marginBottom: 8,
-              textTransform: 'uppercase'
-            }}>
-              RECOMMENDED FOR TODAY
-            </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ 
-                  color: '#FFFFFF', 
-                  fontSize: 22, 
-                  fontWeight: '700',
-                  marginBottom: 4
-                }}>
-                  {nextWorkout.name}
-                </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                  {nextWorkout.exerciseIds.length} {nextWorkout.exerciseIds.length === 1 ? 'exercise' : 'exercises'}
-                </Text>
-              </View>
-              <Button 
-                title="Start →" 
-                onPress={handleStartNextWorkout} 
-              />
-            </View>
-          </Card>
-        ) : !hasRoutines ? (
+        {/* Bridge CTA to Start tab */}
+        <Pressable 
+          onPress={() => router.push('/(tabs)/workouts')}
+          style={{ 
+            marginTop: 24,
+            paddingVertical: 16,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ 
+            color: 'rgba(255,255,255,0.6)', 
+            fontSize: 15,
+          }}>
+            Ready to train? <Text style={{ color: '#10b981', fontWeight: '600' }}>Start a workout →</Text>
+          </Text>
+        </Pressable>
+
+        {/* Empty state card */}
+        {!hasRoutines ? (
           <Card style={{ marginHorizontal: 24 }}>
             <Pressable
               onPress={() => router.push('/routines/create')}
