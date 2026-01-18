@@ -1,25 +1,60 @@
+import { Button } from '@/components/ui';
 import { seedDatabaseWithTrack } from '@/data/database/db';
 import { TRAINING_TRACKS } from '@/data/tracks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, Stack } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, Text, View } from 'react-native';
+import PagerView from 'react-native-pager-view';
+
+const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const db = useSQLiteContext();
   const [loading, setLoading] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [weeklyGoal, setWeeklyGoal] = useState(3);
+  const [currentPage, setCurrentPage] = useState(0);
+  const pagerRef = useRef<PagerView>(null);
 
-  const handleSelectTrack = async (trackKey: string) => {
+  const handleSelectTrack = (trackKey: string) => {
+    setSelectedTrack(trackKey);
+    setCurrentPage(2); // Advance to weekly goal screen
+    if (pagerRef.current) {
+      pagerRef.current.setPage(2);
+    }
+  };
+
+  const handleSkip = () => {
+    setSelectedTrack(null);
+    setCurrentPage(2); // Advance to weekly goal screen
+    if (pagerRef.current) {
+      pagerRef.current.setPage(2);
+    }
+  };
+
+  const handleContinue = () => {
+    setCurrentPage(3); // Advance to completion screen
+    if (pagerRef.current) {
+      pagerRef.current.setPage(3);
+    }
+  };
+
+  const handleFinish = async () => {
     if (loading) return;
 
     try {
       setLoading(true);
-      setSelectedTrack(trackKey);
 
-      // Seed the database with the selected track
-      await seedDatabaseWithTrack(db, trackKey);
+      // Seed the database with the selected track (if one was selected)
+      if (selectedTrack) {
+        await seedDatabaseWithTrack(db, selectedTrack);
+      }
+
+      // Save weekly goal to AsyncStorage
+      await AsyncStorage.setItem('WEEKLY_WORKOUT_GOAL', weeklyGoal.toString());
 
       // Mark onboarding as completed
       await AsyncStorage.setItem('HAS_COMPLETED_ONBOARDING', 'true');
@@ -27,108 +62,288 @@ export default function OnboardingScreen() {
       // Navigate to tabs (replace so they can't go back)
       router.replace('/(tabs)');
     } catch (error) {
-      console.error('Error setting up track:', error);
+      console.error('Error completing onboarding:', error);
       setLoading(false);
-      setSelectedTrack(null);
     }
   };
 
-  const handleSkip = async () => {
-    if (loading) return;
-
-    try {
-      setLoading(true);
-
-      // Mark onboarding as completed (do NOT seed database)
-      await AsyncStorage.setItem('HAS_COMPLETED_ONBOARDING', 'true');
-
-      // Navigate to tabs (replace so they can't go back)
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('Error skipping onboarding:', error);
-      setLoading(false);
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    if (pagerRef.current) {
+      pagerRef.current.setPage(page);
     }
+  };
+
+  const getGoalSubtitle = () => {
+    if (selectedTrack === 'FULL_BODY') {
+      return 'Most full body trainers aim for 2-3 sessions';
+    } else if (selectedTrack === 'PPL') {
+      return 'PPL works great with 3-6 sessions per week';
+    } else if (selectedTrack === 'UPPER_LOWER') {
+      return 'Upper/Lower typically means 3-4 sessions';
+    } else {
+      return 'How many workouts do you want to complete each week?';
+    }
+  };
+
+  const getSelectedTrackName = () => {
+    if (!selectedTrack) return null;
+    return TRAINING_TRACKS[selectedTrack]?.name || null;
   };
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ backgroundColor: '#121212', flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: 16,
-            paddingTop: 60,
-            paddingBottom: 40,
-          }}>
-          {/* Title */}
-          <View style={{ marginBottom: 40, alignItems: 'center' }}>
-            <Text style={{ color: 'white', fontSize: 32, fontWeight: 'bold', marginBottom: 12 }}>
-              How do you want to train?
+    <View style={{ backgroundColor: '#0a0a0a', flex: 1 }}>
+      <PagerView
+        ref={pagerRef}
+        style={{ flex: 1 }}
+        initialPage={0}
+        onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
+        scrollEnabled={false}>
+        {/* Screen 1 - Welcome */}
+        <View key="welcome" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 60 }}>
+          {/* Background gradient orb */}
+          <View style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, opacity: 0.3 }}>
+            <LinearGradient
+              colors={['#10b981', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ flex: 1, borderRadius: 150 }}
+            />
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <Text style={{ fontSize: 36, fontWeight: '700', color: '#FFFFFF', letterSpacing: -1, marginBottom: 16, textAlign: 'center' }}>
+              LiftTrack
             </Text>
-            <Text style={{ color: '#999', fontSize: 16, textAlign: 'center', paddingHorizontal: 20 }}>
-              Choose a training track to get started. You can always add more routines later.
+            <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 48 }}>
+              Track your lifts. Beat your best.
+            </Text>
+            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+              🔒 Your data stays on your device
             </Text>
           </View>
 
-          {/* Track Cards */}
-          <View style={{ gap: 16 }}>
-            {Object.values(TRAINING_TRACKS).map((track) => {
-              const isSelected = selectedTrack === track.key;
-              const isLoading = loading && isSelected;
+          <Button
+            title="Get Started"
+            onPress={() => {
+              setCurrentPage(1);
+              if (pagerRef.current) {
+                pagerRef.current.setPage(1);
+              }
+            }}
+            variant="primary"
+            size="default"
+          />
+        </View>
 
-              return (
-                <Pressable
-                  key={track.key}
-                  onPress={() => handleSelectTrack(track.key)}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: isLoading ? '#1a1a1a' : '#1e1e1e',
-                    borderRadius: 16,
-                    padding: 20,
-                    borderWidth: 2,
-                    borderColor: isLoading ? '#10b981' : '#2a2a2a',
-                    opacity: loading && !isSelected ? 0.5 : 1,
-                  }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: 'white', fontSize: 22, fontWeight: '600', marginBottom: 8 }}>
-                        {track.name}
+        {/* Screen 2 - Training Style */}
+        <View key="training-style" style={{ flex: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 100 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8, textAlign: 'center' }}>
+              How do you like to train?
+            </Text>
+            <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginBottom: 32, textAlign: 'center' }}>
+              Choose a style to get started with pre-built routines.
+            </Text>
+
+            {/* Track Cards */}
+            <View style={{ gap: 16, marginBottom: 32 }}>
+              {Object.values(TRAINING_TRACKS).map((track) => {
+                const isSelected = selectedTrack === track.key;
+                
+                // Get nudge text based on track
+                let nudgeText = '';
+                if (track.key === 'FULL_BODY') {
+                  nudgeText = 'Ideal for 2-3 workouts per week';
+                } else if (track.key === 'PPL') {
+                  nudgeText = 'Ideal for 3-6 workouts per week';
+                } else if (track.key === 'UPPER_LOWER') {
+                  nudgeText = 'Ideal for 3-4 workouts per week';
+                }
+
+                return (
+                  <Pressable
+                    key={track.key}
+                    onPress={() => handleSelectTrack(track.key)}
+                    disabled={loading}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      borderRadius: 20,
+                      padding: 20,
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#10b981' : 'rgba(255,255,255,0.1)',
+                    }}>
+                    <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 }}>
+                      {track.name}
+                    </Text>
+                    <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+                      {track.description}
+                    </Text>
+                    {nudgeText && (
+                      <Text style={{ fontSize: 13, color: '#10b981', marginBottom: 8 }}>
+                        {nudgeText}
                       </Text>
-                      <Text style={{ color: '#999', fontSize: 14, marginBottom: 12 }}>
-                        {track.description}
-                      </Text>
-                      <Text style={{ color: '#666', fontSize: 12 }}>
-                        {track.routines.length} {track.routines.length === 1 ? 'routine' : 'routines'}
-                      </Text>
-                    </View>
-                    {isLoading && (
-                      <ActivityIndicator size="small" color="#10b981" style={{ marginLeft: 16 }} />
                     )}
-                  </View>
-                </Pressable>
-              );
-            })}
+                    <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                      {track.routines.length} {track.routines.length === 1 ? 'routine' : 'routines'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Skip Option */}
+            <Pressable onPress={handleSkip} disabled={loading} style={{ alignItems: 'center', marginTop: 8 }}>
+              <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
+                Skip for now
+              </Text>
+              <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+                You can add or change routines anytime
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+
+        {/* Screen 3 - Weekly Goal */}
+        <View key="weekly-goal" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 100 }}>
+          <View>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8, textAlign: 'center' }}>
+              Set your weekly goal
+            </Text>
+            <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginBottom: 64, textAlign: 'center' }}>
+              {getGoalSubtitle()}
+            </Text>
+
+            {/* Number Selector */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 64 }}>
+              <Pressable
+                onPress={() => setWeeklyGoal(Math.max(1, weeklyGoal - 1))}
+                disabled={weeklyGoal <= 1}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: weeklyGoal <= 1 ? 0.3 : 1,
+                }}>
+                <Text style={{ fontSize: 32, color: '#FFFFFF', fontWeight: '600' }}>-</Text>
+              </Pressable>
+
+              <View style={{ width: 120, alignItems: 'center', marginHorizontal: 32 }}>
+                <Text style={{ fontSize: 48, fontWeight: '700', color: '#FFFFFF' }}>
+                  {weeklyGoal}
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => setWeeklyGoal(Math.min(7, weeklyGoal + 1))}
+                disabled={weeklyGoal >= 7}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: weeklyGoal >= 7 ? 0.3 : 1,
+                }}>
+                <Text style={{ fontSize: 32, color: '#FFFFFF', fontWeight: '600' }}>+</Text>
+              </Pressable>
+            </View>
           </View>
 
-          {/* Skip Button */}
+          <Button
+            title="Continue"
+            onPress={handleContinue}
+            variant="primary"
+            size="default"
+          />
+        </View>
+
+        {/* Screen 4 - You're Ready */}
+        <View key="ready" style={{ flex: 1, justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 100 }}>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 32, textAlign: 'center' }}>
+              You're all set! 🎉
+            </Text>
+
+            {/* Summary Card */}
+            <View style={{
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: 20,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.1)',
+              marginBottom: 24,
+            }}>
+              {selectedTrack && (
+                <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF', marginBottom: 12, textAlign: 'center' }}>
+                  Your {getSelectedTrackName()} routines are ready
+                </Text>
+              )}
+              <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+                Goal: {weeklyGoal} {weeklyGoal === 1 ? 'workout' : 'workouts'} per week
+              </Text>
+            </View>
+          </View>
+
           <Pressable
-            onPress={handleSkip}
+            onPress={handleFinish}
             disabled={loading}
             style={{
-              marginTop: 32,
-              paddingVertical: 16,
+              backgroundColor: loading ? 'rgba(16,185,129,0.5)' : '#10b981',
               paddingHorizontal: 24,
+              paddingVertical: 14,
+              borderRadius: 12,
               alignItems: 'center',
-              opacity: loading ? 0.5 : 1,
+              justifyContent: 'center',
+              opacity: loading ? 0.6 : 1,
             }}>
-            <Text style={{ color: '#999', fontSize: 16 }}>
-              Skip (Build my own)
+            <Text style={{
+              color: '#FFFFFF',
+              fontSize: 15,
+              fontWeight: '600',
+            }}>
+              {loading ? 'Loading...' : 'Start Training'}
             </Text>
           </Pressable>
-        </ScrollView>
+
+          {loading && (
+            <ActivityIndicator size="small" color="#10b981" style={{ marginTop: 16 }} />
+          )}
+        </View>
+      </PagerView>
+
+      {/* Page Indicator Dots */}
+      <View style={{
+        position: 'absolute',
+        bottom: 40,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        {[0, 1, 2, 3].map((index) => (
+          <Pressable
+            key={index}
+            onPress={() => goToPage(index)}
+            style={{
+              width: currentPage === index ? 24 : 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: currentPage === index ? '#10b981' : 'rgba(255,255,255,0.3)',
+            }}
+          />
+        ))}
       </View>
-    </>
+    </View>
   );
 }
-
