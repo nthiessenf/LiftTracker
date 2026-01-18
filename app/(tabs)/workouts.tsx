@@ -336,7 +336,7 @@ export default function WorkoutsScreen() {
     return (
       <Card
         variant="default"
-        onPress={() => handleCardPress(item.id)}
+        onPress={() => handleStartRoutine(item)}
         style={{ marginHorizontal: 24, marginBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* LEFT SIDE: Text Info */}
@@ -366,13 +366,8 @@ export default function WorkoutsScreen() {
               <MaterialIcons name="more-horiz" size={20} color="rgba(255,255,255,0.4)" />
             </TouchableOpacity>
 
-            {/* Start Button */}
-            <Button
-              title="Start"
-              onPress={() => handleStartRoutine(item)}
-              variant="primary"
-              size="default"
-            />
+            {/* Chevron */}
+            <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.4)" />
           </View>
         </View>
       </Card>
@@ -404,8 +399,8 @@ export default function WorkoutsScreen() {
         {nextWorkout && (
           <>
             <Text style={{ 
-              color: 'rgba(255,255,255,0.5)', 
-              fontSize: 12, 
+              color: '#10b981', 
+              fontSize: 13, 
               fontWeight: '600', 
               letterSpacing: 1,
               marginBottom: 12,
@@ -448,15 +443,15 @@ export default function WorkoutsScreen() {
             marginVertical: 24,
             marginHorizontal: 24
           }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
             <Text style={{ 
-              color: 'rgba(255,255,255,0.4)', 
-              fontSize: 13, 
+              color: 'rgba(255,255,255,0.5)', 
+              fontSize: 14, 
               marginHorizontal: 16 
             }}>
               or
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.2)' }} />
           </View>
         )}
 
@@ -470,28 +465,30 @@ export default function WorkoutsScreen() {
             marginBottom: 24,
             borderRadius: 12,
             borderWidth: 1,
-            borderColor: '#2a2a2a',
+            borderColor: 'rgba(255,255,255,0.2)',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}>
-          {/* Left Side: Icon + Text */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-            <MaterialIcons name="add-circle" size={24} color="#10b981" />
-            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginLeft: 12 }}>
+          {/* Left Side: Text */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
               Start Empty Workout
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+              Add exercises as you go
             </Text>
           </View>
           {/* Right Side: Chevron */}
-          <MaterialIcons name="chevron-right" size={20} color="#10b981" />
+          <MaterialIcons name="chevron-right" size={20} color="rgba(255,255,255,0.4)" />
         </Pressable>
 
         {/* YOUR ROUTINES Header */}
         <View style={{ marginHorizontal: 24, marginTop: 0, marginBottom: 16 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ 
-              color: 'rgba(255,255,255,0.5)', 
-              fontSize: 12, 
+              color: '#10b981', 
+              fontSize: 13, 
               fontWeight: '600',
               letterSpacing: 1,
               textTransform: 'uppercase'
