@@ -465,15 +465,7 @@ export default function WorkoutsScreen() {
               WORKOUT IN PROGRESS
             </Text>
             
-            <Pressable
-              onPress={() => {
-                router.push({
-                  pathname: '/session/active',
-                  params: { 
-                    resumeWorkout: 'true'
-                  }
-                });
-              }}
+            <View
               style={{
                 backgroundColor: 'rgba(245,158,11,0.15)',
                 borderRadius: 20,
@@ -482,51 +474,55 @@ export default function WorkoutsScreen() {
                 padding: 20,
               }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 4 }}>
-                    {inProgressWorkout.routineName || 'Workout'}
-                  </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                    Started {formatTimeAgo(inProgressWorkout.startTime)}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    router.push({
-                      pathname: '/session/active',
-                      params: { resumeWorkout: 'true' }
-                    });
-                  }}
-                  style={{
-                    backgroundColor: '#f59e0b',
-                    paddingHorizontal: 20,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    marginLeft: 16,
-                  }}
-                >
-                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Continue →</Text>
-                </Pressable>
-              </View>
+              {/* Workout info */}
+              <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 4 }}>
+                {inProgressWorkout.routineName || 'Workout'}
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 20 }}>
+                Started {formatTimeAgo(inProgressWorkout.startTime)}
+              </Text>
               
+              {/* Continue button - full width, matching recommendation card button style */}
               <Pressable
-                onPress={(e) => {
-                  e.stopPropagation();
-                  discardInProgressWorkout();
+                onPress={() => {
+                  router.push({
+                    pathname: '/session/active',
+                    params: { resumeWorkout: 'true' }
+                  });
                 }}
-                style={{ marginTop: 12 }}
+                style={{
+                  backgroundColor: '#f59e0b',
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  marginBottom: 16,
+                }}
               >
-                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center' }}>
-                  Discard workout
+                <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Continue Workout →</Text>
+              </Pressable>
+              
+              {/* Discard button - more visible */}
+              <Pressable
+                onPress={discardInProgressWorkout}
+                style={{
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                }}
+              >
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: '500' }}>
+                  Discard Workout
                 </Text>
               </Pressable>
-            </Pressable>
+            </View>
           </View>
         )}
 
         {/* TODAY'S RECOMMENDATION Section */}
-        {nextWorkout && (
+        {!inProgressWorkout && nextWorkout && (
           <>
             <Text style={{ 
               color: '#10b981', 
@@ -566,7 +562,7 @@ export default function WorkoutsScreen() {
         )}
 
         {/* "or" Divider */}
-        {nextWorkout && (
+        {!inProgressWorkout && nextWorkout && (
           <View style={{ 
             flexDirection: 'row', 
             alignItems: 'center', 
