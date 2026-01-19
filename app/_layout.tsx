@@ -162,6 +162,13 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="session/timer"
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="routines/create"
         options={{
           presentation: 'modal',

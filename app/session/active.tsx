@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, Vibration, View } from 'react-native';
+import { Alert, FlatList, LayoutAnimation, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import { Card, Button } from '@/components/ui';
 
 type Set = {
@@ -30,11 +30,14 @@ export default function ActiveSessionScreen() {
   const db = useSQLiteContext();
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
-  const [restTimerSeconds, setRestTimerSeconds] = useState(0);
-  const [showTimer, setShowTimer] = useState(false);
-  const [timerComplete, setTimerComplete] = useState(false);
   const [defaultRestTimer, setDefaultRestTimer] = useState(90); // Default to 90 seconds
-  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Enable LayoutAnimation for Android
+  useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
 
   // Fetch workout history and find most recent sets for an exercise
   const getMostRecentSetsForExercise = async (exerciseId: string): Promise<Set[]> => {
@@ -198,6 +201,8 @@ export default function ActiveSessionScreen() {
       // Check if the exercise now has zero sets after removal
       const exerciseAfterRemoval = updatedExercises.find((ex) => ex.exerciseId === exerciseId);
       if (exerciseAfterRemoval && exerciseAfterRemoval.sets.length === 0) {
+        // Trigger animation before removing the exercise
+        LayoutAnimation.easeInEaseOut();
         // Remove the entire exercise if it has no sets left
         return updatedExercises.filter((ex) => ex.exerciseId !== exerciseId);
       }
@@ -206,57 +211,19 @@ export default function ActiveSessionScreen() {
     });
   };
 
-  const startRestTimer = () => {
-    if (restTimerSeconds > 0) {
-      // Timer already running, don't restart
-      return;
-    }
-    setRestTimerSeconds(defaultRestTimer);
-    setShowTimer(true);
-    setTimerComplete(false);
-  };
-
-  const stopRestTimer = () => {
-    setRestTimerSeconds(0);
-    setShowTimer(false);
-    setTimerComplete(false);
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-  };
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (restTimerSeconds > 0 && showTimer) {
-      timerIntervalRef.current = setInterval(() => {
-        setRestTimerSeconds((prev) => {
-          if (prev <= 1) {
-            // Timer reached 0
-            setTimerComplete(true);
-            Vibration.vibrate([0, 500, 200, 500]); // Vibrate pattern
-            setTimeout(() => {
-              setShowTimer(false);
-              setTimerComplete(false);
-            }, 2000); // Show "GO!" for 2 seconds
-            if (timerIntervalRef.current) {
-              clearInterval(timerIntervalRef.current);
-              timerIntervalRef.current = null;
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
+  const startRestTimer = (exerciseId?: string) => {
+    const exerciseName = exerciseId 
+      ? EXERCISES.find((ex) => ex.id === exerciseId)?.name 
+      : undefined;
+    
+    router.push({
+      pathname: '/session/timer',
+      params: { 
+        duration: defaultRestTimer.toString(),
+        exerciseName: exerciseName || undefined
       }
-    };
-  }, [restTimerSeconds, showTimer]);
+    });
+  };
 
   const handleSwapExercise = (currentExerciseId: string) => {
     const currentExercise = EXERCISES.find((ex) => ex.id === currentExerciseId);
@@ -314,9 +281,9 @@ export default function ActiveSessionScreen() {
       )
     );
 
-    // Start timer if a set is marked as completed and timer is not already running
-    if (field === 'completed' && value === true && !wasCompleted && restTimerSeconds === 0) {
-      startRestTimer();
+    // Start timer if a set is marked as completed
+    if (field === 'completed' && value === true && !wasCompleted) {
+      startRestTimer(exerciseId);
     }
   };
 
@@ -633,39 +600,6 @@ export default function ActiveSessionScreen() {
           </>
         )}
       </ScrollView>
-
-      {/* Rest Timer Overlay */}
-      {showTimer && (
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 100,
-            left: 24,
-            right: 24,
-          }}>
-          <Card variant="elevated" style={{ padding: 24, marginBottom: 0 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flex: 1 }}>
-                {timerComplete ? (
-                  <Text style={{ fontSize: 48, fontWeight: '700', color: '#10b981' }}>GO!</Text>
-                ) : (
-                  <Text style={{ fontSize: 48, fontWeight: '700', color: '#10b981' }}>
-                    {String(Math.floor(restTimerSeconds / 60)).padStart(2, '0')}:{String(restTimerSeconds % 60).padStart(2, '0')}
-                  </Text>
-                )}
-              </View>
-              <Pressable
-                onPress={stopRestTimer}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                }}>
-                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 20, fontWeight: '600' }}>✕</Text>
-              </Pressable>
-            </View>
-          </Card>
-        </View>
-      )}
 
       {/* Footer */}
       <View
