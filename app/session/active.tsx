@@ -160,22 +160,26 @@ export default function ActiveSessionScreen() {
 
   const handleAddSet = (exerciseId: string) => {
     setSessionExercises(
-      sessionExercises.map((ex) =>
-        ex.exerciseId === exerciseId
-          ? {
-              ...ex,
-              sets: [
-                ...ex.sets,
-                {
-                  id: Date.now().toString(),
-                  weight: '',
-                  reps: '',
-                  completed: false,
-                },
-              ],
-            }
-          : ex
-      )
+      sessionExercises.map((ex) => {
+        if (ex.exerciseId === exerciseId) {
+          // Find the last set for this exercise to pre-fill values
+          const lastSet = ex.sets.length > 0 ? ex.sets[ex.sets.length - 1] : null;
+          
+          return {
+            ...ex,
+            sets: [
+              ...ex.sets,
+              {
+                id: Date.now().toString(),
+                weight: lastSet?.weight ?? '',
+                reps: lastSet?.reps ?? '',
+                completed: false,
+              },
+            ],
+          };
+        }
+        return ex;
+      })
     );
   };
 
