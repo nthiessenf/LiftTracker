@@ -33,8 +33,6 @@ export default function WorkoutsScreen() {
         WHERE r.is_temporary = 0 
         ORDER BY last_used_date DESC, r.name ASC`
       );
-      console.log('DEBUG - Routines found:', routines.length, routines);
-      console.log('Fetched routines:', routines);
 
       // For each routine, fetch associated exercise IDs and estimated duration
       const routinesWithExercises: Routine[] = await Promise.all(
@@ -59,37 +57,34 @@ export default function WorkoutsScreen() {
 
       setUserRoutines(routinesWithExercises);
 
-      // Determine next workout using routine_id rotation (same logic as Dashboard)
+      // Determine next workout using routine rotation (A → B → A → B)
       if (routines.length === 0) {
         setNextWorkout(null);
       } else {
-        // Get the most recent workout's routine_id
-        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
-          'SELECT routine_id FROM workouts ORDER BY date DESC LIMIT 1'
-        );
-
-        // Get all routines ordered by id ASC (for consistent rotation)
+        // Get all non-temporary routines ordered consistently (alphabetical by name)
         const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
-          'SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY id ASC'
+          'SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY name ASC'
         );
 
-        let nextRoutineIndex = 0; // Default to first routine
+        // Get the most recent workout that used one of these routines
+        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
+          'SELECT routine_id FROM workouts WHERE routine_id IS NOT NULL ORDER BY date DESC, id DESC LIMIT 1'
+        );
 
-        // Rotation logic
+        // Find the next routine in rotation
+        let nextRoutineIndex = 0;
+
         if (lastWorkout?.routine_id) {
-          // Find the index of the last workout's routine
-          const lastRoutineIndex = allRoutines.findIndex((r) => r.id === lastWorkout.routine_id);
-          
-          if (lastRoutineIndex !== -1) {
-            // Routine found: rotate to next (wrap around with modulo)
-            nextRoutineIndex = (lastRoutineIndex + 1) % allRoutines.length;
+          const lastIndex = allRoutines.findIndex(r => r.id === lastWorkout.routine_id);
+          if (lastIndex !== -1) {
+            // Move to next routine, wrap around to 0 if at end
+            nextRoutineIndex = (lastIndex + 1) % allRoutines.length;
           }
         }
 
-        // Safety check: ensure nextRoutineIndex is valid
-        if (nextRoutineIndex >= 0 && nextRoutineIndex < allRoutines.length) {
-          const nextRoutine = allRoutines[nextRoutineIndex];
+        const nextRoutine = allRoutines[nextRoutineIndex];
 
+        if (nextRoutine) {
           // Get exercise IDs for the next routine
           const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
             'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
@@ -507,10 +502,6 @@ export default function WorkoutsScreen() {
         {/* Routine Cards */}
         {(() => {
           const displayedRoutines = userRoutines.filter((routine) => routine.id !== nextWorkout?.id);
-          console.log('DEBUG - nextWorkout?.id:', nextWorkout?.id);
-          console.log('DEBUG - userRoutines count:', userRoutines.length);
-          console.log('DEBUG - displayedRoutines count:', displayedRoutines.length);
-          console.log('DEBUG - displayedRoutines:', displayedRoutines.map(r => ({ id: r.id, name: r.name })));
           
           return displayedRoutines.length > 0 ? (
             displayedRoutines.map((routine) => (
