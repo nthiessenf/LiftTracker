@@ -28,12 +28,12 @@ type WorkoutSession = {
 const IN_PROGRESS_WORKOUT_KEY = 'IN_PROGRESS_WORKOUT';
 
 export default function ActiveSessionScreen() {
-  const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string; workoutId?: string }>();
+  const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string; workoutId?: string; resumeWorkout?: string }>();
   const db = useSQLiteContext();
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
   const [defaultRestTimer, setDefaultRestTimer] = useState(90); // Default to 90 seconds
-  const [startTime] = useState(new Date().toISOString()); // Track when workout began
+  const [startTime, setStartTime] = useState(new Date().toISOString()); // Track when workout began
 
   // Enable LayoutAnimation for Android
   useEffect(() => {
@@ -175,9 +175,38 @@ export default function ActiveSessionScreen() {
     loadDefaultRestTimer();
   }, []);
 
-  // Pre-fill exercises from template if template data exists
+  // Load saved workout from AsyncStorage
+  const loadSavedWorkout = useCallback(async () => {
+    try {
+      const saved = await AsyncStorage.getItem(IN_PROGRESS_WORKOUT_KEY);
+      if (saved) {
+        const workoutState = JSON.parse(saved);
+        setSessionExercises(workoutState.exercises);
+        // Restore the original start time
+        if (workoutState.startTime) {
+          setStartTime(workoutState.startTime);
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to load saved workout:', error);
+      return false;
+    }
+  }, []);
+
+  // Initialize workout - either resume from saved state or load from template
   useEffect(() => {
-    const loadTemplateExercises = async () => {
+    const initializeWorkout = async () => {
+      // If resuming, load from AsyncStorage first
+      if (params.resumeWorkout === 'true') {
+        const loaded = await loadSavedWorkout();
+        if (loaded) {
+          return; // Successfully resumed, don't load from template
+        }
+      }
+      
+      // Otherwise, load normally from template/routine
       if (params.exerciseIds) {
         const exerciseIds = params.exerciseIds.split(',');
         const templateExercises: SessionExercise[] = [];
@@ -196,8 +225,8 @@ export default function ActiveSessionScreen() {
       }
     };
 
-    loadTemplateExercises();
-  }, [params.exerciseIds]);
+    initializeWorkout();
+  }, [params.resumeWorkout, params.exerciseIds, loadSavedWorkout]);
 
   const handleAddExercise = () => {
     setShowExerciseModal(true);
