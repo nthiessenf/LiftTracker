@@ -1,11 +1,14 @@
 import { getRoutineDurationEstimate } from '@/data/database/db';
 import { CardStyles } from '@/constants/Typography';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Card, Button } from '../../components/ui';
+
+const IN_PROGRESS_WORKOUT_KEY = 'IN_PROGRESS_WORKOUT';
 
 type Routine = {
   id: string;
@@ -19,6 +22,13 @@ export default function WorkoutsScreen() {
   const db = useSQLiteContext();
   const [userRoutines, setUserRoutines] = useState<Routine[]>([]);
   const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[]; estimatedDuration: number } | null>(null);
+  const [inProgressWorkout, setInProgressWorkout] = useState<{
+    templateId: string | null;
+    routineName: string | null;
+    exercises: any[];
+    startTime: string;
+    savedAt: string;
+  } | null>(null);
 
   const loadUserRoutines = useCallback(async () => {
     try {
@@ -113,10 +123,60 @@ export default function WorkoutsScreen() {
     }
   }, [db]);
 
+  // Check for in-progress workout
+  const checkForInProgressWorkout = useCallback(async () => {
+    try {
+      const saved = await AsyncStorage.getItem(IN_PROGRESS_WORKOUT_KEY);
+      if (saved) {
+        const workoutState = JSON.parse(saved);
+        setInProgressWorkout(workoutState);
+      } else {
+        setInProgressWorkout(null);
+      }
+    } catch (error) {
+      console.error('Failed to check for in-progress workout:', error);
+      setInProgressWorkout(null);
+    }
+  }, []);
+
+  // Discard in-progress workout
+  const discardInProgressWorkout = async () => {
+    Alert.alert(
+      'Discard Workout?',
+      'This will delete your in-progress workout. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Discard',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.removeItem(IN_PROGRESS_WORKOUT_KEY);
+            setInProgressWorkout(null);
+          },
+        },
+      ]
+    );
+  };
+
+  // Format time ago helper
+  const formatTimeAgo = (isoString: string) => {
+    const now = new Date();
+    const then = new Date(isoString);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
+
   useFocusEffect(
     useCallback(() => {
+      checkForInProgressWorkout();
       loadUserRoutines();
-    }, [loadUserRoutines])
+    }, [checkForInProgressWorkout, loadUserRoutines])
   );
 
   const handleStartRoutine = (routine: Routine) => {
@@ -390,6 +450,80 @@ export default function WorkoutsScreen() {
         }}>
           Workouts
         </Text>
+
+        {/* CONTINUE WORKOUT Section */}
+        {inProgressWorkout && (
+          <View style={{ marginHorizontal: 24, marginBottom: 24 }}>
+            <Text style={{ 
+              color: '#f59e0b', 
+              fontSize: 13, 
+              fontWeight: '600', 
+              letterSpacing: 1, 
+              marginBottom: 12,
+              textTransform: 'uppercase',
+            }}>
+              WORKOUT IN PROGRESS
+            </Text>
+            
+            <Pressable
+              onPress={() => {
+                router.push({
+                  pathname: '/session/active',
+                  params: { 
+                    resumeWorkout: 'true'
+                  }
+                });
+              }}
+              style={{
+                backgroundColor: 'rgba(245,158,11,0.15)',
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(245,158,11,0.3)',
+                padding: 20,
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 4 }}>
+                    {inProgressWorkout.routineName || 'Workout'}
+                  </Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    Started {formatTimeAgo(inProgressWorkout.startTime)}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    router.push({
+                      pathname: '/session/active',
+                      params: { resumeWorkout: 'true' }
+                    });
+                  }}
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    marginLeft: 16,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Continue →</Text>
+                </Pressable>
+              </View>
+              
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  discardInProgressWorkout();
+                }}
+                style={{ marginTop: 12 }}
+              >
+                <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center' }}>
+                  Discard workout
+                </Text>
+              </Pressable>
+            </Pressable>
+          </View>
+        )}
 
         {/* TODAY'S RECOMMENDATION Section */}
         {nextWorkout && (

@@ -2,7 +2,7 @@ import { EXERCISES, Exercise } from '@/data/exercises';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, LayoutAnimation, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import { Card, Button } from '@/components/ui';
 
@@ -25,12 +25,15 @@ type WorkoutSession = {
   exercises: { exerciseId: string; sets: { reps: number; weight: number; completed: boolean }[] }[];
 };
 
+const IN_PROGRESS_WORKOUT_KEY = 'IN_PROGRESS_WORKOUT';
+
 export default function ActiveSessionScreen() {
   const params = useLocalSearchParams<{ exerciseIds?: string; templateId?: string; workoutId?: string }>();
   const db = useSQLiteContext();
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
   const [defaultRestTimer, setDefaultRestTimer] = useState(90); // Default to 90 seconds
+  const [startTime] = useState(new Date().toISOString()); // Track when workout began
 
   // Enable LayoutAnimation for Android
   useEffect(() => {
@@ -38,6 +41,51 @@ export default function ActiveSessionScreen() {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
   }, []);
+
+  // Save workout progress to AsyncStorage
+  const saveWorkoutProgress = useCallback(async () => {
+    try {
+      // Get routine name if templateId exists
+      let routineName: string | null = null;
+      if (params.templateId) {
+        const routine = await db.getFirstAsync<{ name: string }>(
+          'SELECT name FROM routines WHERE id = ?',
+          [params.templateId]
+        );
+        if (routine) {
+          routineName = routine.name;
+        }
+      }
+
+      const workoutState = {
+        templateId: params.templateId || null,
+        routineName: routineName,
+        exercises: sessionExercises,
+        startTime: startTime,
+        savedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(IN_PROGRESS_WORKOUT_KEY, JSON.stringify(workoutState));
+    } catch (error) {
+      console.error('Failed to save workout progress:', error);
+    }
+  }, [params.templateId, sessionExercises, startTime, db]);
+
+  // Auto-save workout progress whenever exercises change
+  useEffect(() => {
+    // Only save if there's actual workout data
+    if (sessionExercises && sessionExercises.length > 0) {
+      saveWorkoutProgress();
+    }
+  }, [sessionExercises, saveWorkoutProgress]);
+
+  // Clear saved workout progress
+  const clearWorkoutProgress = async () => {
+    try {
+      await AsyncStorage.removeItem(IN_PROGRESS_WORKOUT_KEY);
+    } catch (error) {
+      console.error('Failed to clear workout progress:', error);
+    }
+  };
 
   // Fetch workout history and find most recent sets for an exercise
   const getMostRecentSetsForExercise = async (exerciseId: string): Promise<Set[]> => {
@@ -338,6 +386,9 @@ export default function ActiveSessionScreen() {
         }
       });
 
+      // Clear saved progress after successfully saving to database
+      await clearWorkoutProgress();
+
       // Show success alert
       Alert.alert('Workout Saved!', 'Your workout has been saved successfully.', [
         {
@@ -351,13 +402,17 @@ export default function ActiveSessionScreen() {
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     Alert.alert('Cancel Workout', 'Are you sure you want to cancel?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes',
         style: 'destructive',
-        onPress: () => router.back(),
+        onPress: async () => {
+          // Clear saved progress when cancelling
+          await clearWorkoutProgress();
+          router.back();
+        },
       },
     ]);
   };
