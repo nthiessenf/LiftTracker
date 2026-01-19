@@ -15,7 +15,7 @@
 * **Data (Prefs):** `AsyncStorage` (Simple settings like Weekly Goals, Onboarding flags)
 * **Visualization:** 
   * `react-native-circular-progress-indicator` (Weekly Goal Ring)
-  * `react-native-body-highlighter` (Muscle Recovery Heatmap)
+  * `react-native-body-highlighter` (Muscle Recovery Heatmap - planned)
   * `react-native-calendars` (History Calendar View)
   * `react-native-pager-view` (Swipeable onboarding screens)
 
@@ -104,11 +104,12 @@ Never suggest Firebase, Supabase, or remote APIs. All features must work without
 ### Data Safety
 Always respect the "Source of Truth." Do not hardcode new routines in JSON; insert them into SQLite.
 
-### Navigation Logic
-* **Dashboard (index.tsx):** Reviews status and "Up Next" recommendation
-* **Workouts (workouts.tsx):** Routine library and selection
-* **Library (library.tsx):** Exercise reference knowledge
-* **History (history.tsx):** Reflect on past performance
+### Navigation Logic (Updated Jan 2026)
+* **Dashboard (index.tsx):** Reflection & progress stats. Contains bridge CTA to Start tab.
+* **Start (workouts.tsx):** THE place to begin any workout. Shows recommendation, empty workout option, and routine list.
+* **Library (library.tsx):** Exercise reference and knowledge base.
+* **History (history.tsx):** Review and edit past workouts.
+* **Settings (settings.tsx):** Backup, preferences, testing tools.
 
 ### Code Style
 * **ALWAYS use functional components** (never class components)
@@ -130,11 +131,25 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 
 ### Dashboard (`app/(tabs)/index.tsx`)
 * Green "Goal Ring" tracks weekly workouts with streak counter
-* "Up Next" card rotates based on routine_id index (no longer string matching)
-* Handles "Zero State" gracefully without crashing
 * Weekly Progress dots show workout status for current week
 * Glass-morphism design with green gradient glow effect
-* **Note:** Body heatmap feature was removed in recent refactoring
+* Simple bridge CTA at bottom: "Ready to train? Start a workout →" (links to Start tab)
+* **Note:** Recommendation card removed - now lives on Start tab
+* **Note:** Body heatmap feature planned for future
+
+### Start Tab (`app/(tabs)/workouts.tsx`) - UPDATED
+* **Tab renamed from "Workout" to "Start"**
+* **"Recommended for Today" card** at top with:
+  * Routine name, estimated duration, "last done X days ago" context
+  * Green "Start" button (only primary CTA on screen)
+* **Section structure with clear visual hierarchy:**
+  * "TODAY'S RECOMMENDATION" label (green, uppercase)
+  * "or" divider (lines with centered text)
+  * "YOUR ROUTINES" label (green, uppercase)
+* **"Start Empty Workout" card** with subtitle "Add exercises as you go", chevron (no button)
+* **Routine cards** with chevrons (no Start buttons), sorted by last used then alphabetically
+* **Recommended routine hidden from list** (no duplication)
+* **Known issue:** Recommendation rotation logic needs fix (should cycle A→B→A, currently picks longest-unused)
 
 ### Active Session (`app/session/active.tsx`)
 * Smart Pre-fill: Queries SQLite for the last session of that specific exercise to fill weight/reps
@@ -169,8 +184,9 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 ```
 app/
 ├── (tabs)/
-│   ├── index.tsx          # Dashboard / Progress
-│   ├── workouts.tsx       # Routine List / Selection
+│   ├── index.tsx          # Dashboard / Progress (reflection-focused)
+│   ├── workouts.tsx       # Start Tab - begin workouts here
+│   ├── _layout.tsx        # Tab configuration (renamed Workout→Start)
 │   ├── library.tsx        # Exercise Library
 │   ├── history.tsx        # Past Workouts List (Calendar View)
 │   └── settings.tsx       # Settings & Backup
@@ -233,8 +249,11 @@ data/
 ### Dark Mode Default
 * Background: `#0a0a0a` (screens), `#121212` (alt)
 * Card Background: `rgba(255,255,255,0.06)`
-* Card Border: `rgba(255,255,255,0.1)`
+* Card Border: `rgba(255,255,255,0.15)` or `rgba(255,255,255,0.2)`
+* Card Border (accent): `rgba(16,185,129,0.3)`
 * Primary Accent: `#10b981` (green)
+* Section Labels: `#10b981` (green, uppercase, 13px)
+* Divider Lines: `rgba(255,255,255,0.2)`
 * Text Primary: `#FFFFFF`
 * Text Secondary: `rgba(255,255,255,0.5)`
 * Text Muted: `rgba(255,255,255,0.4)`
@@ -245,15 +264,23 @@ data/
 * Green gradient glow effects (use LinearGradient from expo-linear-gradient)
 * Card-based design with 20px border-radius
 
+### CTA Hierarchy (IMPORTANT)
+* **Primary CTA (green button):** Only ONE per screen, for the main action
+* **Secondary actions (chevrons →):** For alternative paths, entire card is tappable
+* This reduces decision fatigue and creates clear visual hierarchy
+
 ### Spacing
 * Screen horizontal padding: 24px
 * Card padding: 20-24px
-* Card marginBottom: 16-24px
+* Card marginBottom: 12-16px
+* Section label marginBottom: 12px
+* "or" divider marginVertical: 24px
 * Button border-radius: 12px
 
 ### Typography
 * App Title: 36px, bold, letterSpacing: -1
 * Card Title: 20-22px, fontWeight: 700
+* Section Label: 13px, fontWeight: 600, letterSpacing: 1, uppercase, #10b981
 * Section Header: 16-18px, fontWeight: 600
 * Body: 14-15px, fontWeight: 400
 * Caption: 12-14px
@@ -292,6 +319,15 @@ router.push({ pathname: '/route', params: { id: '123' } });
 router.replace('/(tabs)'); // Use replace to prevent back navigation
 ```
 
+### Sorting Routines (Last Used, Then Alphabetically)
+```sql
+SELECT r.*, 
+  (SELECT MAX(date) FROM workouts WHERE routine_id = r.id) as last_used_date 
+FROM routines r 
+WHERE r.is_temporary = 0 
+ORDER BY last_used_date DESC NULLS LAST, r.name ASC
+```
+
 ## 10. Troubleshooting Notes
 
 * **Onboarding Loop:** Check `HAS_COMPLETED_ONBOARDING` flag in AsyncStorage
@@ -300,3 +336,19 @@ router.replace('/(tabs)'); // Use replace to prevent back navigation
 * **Temporary Routines:** Check `is_temporary = 1` flag in routines table
 * **Exercise Lookups:** Always reference `data/exercises.ts`, never query DB for exercises
 * **Gradient Effects:** Reuse the Dashboard's green gradient glow pattern; don't create new implementations
+* **Pressable Styling:** Don't use dynamic style functions - use static inline styles only (NativeWind conflict)
+
+## 11. Known Issues & Planned Work
+
+### Known Issues
+* **Recommendation rotation logic:** Currently picks longest-unused routine. Should cycle through routines in order (A→B→A→B).
+
+### Planned Features
+* **Continue Workout:** Resume state if user closes app mid-workout
+* **Repeat Workout:** Button in History detail to redo a past workout  
+* **Body Heatmap:** Visual muscle recovery indicator on Dashboard (replace bridge CTA area)
+
+### UI Polish Remaining
+* Library tab styling updates
+* History tab styling updates
+* Settings tab styling updates

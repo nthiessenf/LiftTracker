@@ -21,7 +21,8 @@ Created reusable UI components in `components/ui/`:
 - ✅ Enlarged WeeklyGoalRing (radius 50, stroke width 10)
 - ✅ Fixed ring number styling (large white current count, small dimmed goal)
 - ✅ Weekly Progress card with checkmarks for completed days
-- ✅ Recommended for Today card (variant="accent")
+- ✅ Removed "Recommended for Today" card (moved to Start tab)
+- ✅ Added simple bridge CTA: "Ready to train? Start a workout →"
 - ✅ Removed "Dashboard" header bar
 - ✅ Added green gradient glow effect (LinearGradient)
 - ✅ Fixed spacing and padding throughout
@@ -37,6 +38,26 @@ Created reusable UI components in `components/ui/`:
 - ✅ Database seeding via `seedDatabaseWithTrack()` based on user selection
 - ✅ Glass-morphism card styling matching app design
 - ✅ "Reset Onboarding" button added to Settings for testing
+
+### Phase 3: Start Tab UX Restructure (`app/(tabs)/workouts.tsx`)
+- ✅ Renamed tab from "Workout" to "Start" (in `_layout.tsx`)
+- ✅ Added "Recommended for Today" card at TOP of screen (moved from Dashboard)
+- ✅ Card shows: routine name, estimated duration, "last done X days ago" context
+- ✅ Added clear section structure with labels:
+  - "TODAY'S RECOMMENDATION" (green, uppercase)
+  - "or" divider (horizontal lines with centered text)
+  - "YOUR ROUTINES" (green, uppercase)
+- ✅ Recommended routine is hidden from "Your Routines" list (no duplication)
+- ✅ Updated "Start Empty Workout" card:
+  - Removed plus icon
+  - Added subtitle: "Add exercises as you go"
+  - Uses chevron (→) instead of button
+- ✅ Simplified routine card CTAs:
+  - Removed green "Start" buttons
+  - Added chevrons (→) instead
+  - Only recommendation card has green "Start" button (clear visual hierarchy)
+- ✅ Standardized card borders (consistent brightness)
+- ✅ Routines sorted by: Last Used (most recent first), then alphabetically
 
 ---
 
@@ -99,10 +120,14 @@ This causes cards to shrink to content width instead of stretching full width. R
 ### 8. Reuse Existing Patterns for Effects
 When implementing visual effects like gradient glows, **always check if the same effect exists elsewhere in the app** and copy that exact implementation. Don't try to recreate from scratch - it often produces different (worse) results.
 
-Example: The green gradient glow on Dashboard should be reused identically for Onboarding Screen 1.
-
 ### 9. Less Text is More Readable
 When cards feel cluttered, remove secondary/tertiary text rather than adjusting sizes. Users scan quickly - one title + one supporting detail is often enough.
+
+### 10. CTA Hierarchy Matters
+The more buttons on a screen, the less powerful each one becomes. Use:
+- **Primary CTA (green button):** Only ONE per screen, for the main action
+- **Secondary actions (chevrons):** For alternative paths, tappable cards
+- This creates clear visual hierarchy and reduces decision fatigue
 
 ---
 
@@ -116,8 +141,9 @@ When cards feel cluttered, remove secondary/tertiary text rather than adjusting 
 - `design/mockups/ui-redesign-mockup.jsx` (visual reference)
 
 ### Files Updated
-- `app/(tabs)/index.tsx` - Dashboard redesign
-- `app/(tabs)/_layout.tsx` - Hidden Dashboard header
+- `app/(tabs)/index.tsx` - Dashboard redesign, removed recommendation card, added bridge CTA
+- `app/(tabs)/workouts.tsx` - Complete restructure with sections, recommendation card, CTA hierarchy
+- `app/(tabs)/_layout.tsx` - Renamed "Workout" tab to "Start", hidden Dashboard header
 - `app/(tabs)/settings.tsx` - Added Reset Onboarding button (for testing)
 - `app/onboarding.tsx` - Complete redesign with 4-screen flow
 - `components/WeeklyGoalRing.tsx` - Larger ring, better styling
@@ -131,9 +157,11 @@ When cards feel cluttered, remove secondary/tertiary text rather than adjusting 
 - Card Background (default): `rgba(255,255,255,0.06)`
 - Card Background (elevated): `rgba(255,255,255,0.18)`
 - Card Background (accent): `rgba(16,185,129,0.15)`
-- Card Border (default): `rgba(255,255,255,0.1)` or `rgba(255,255,255,0.2)`
-- Card Border (accent): `rgba(16,185,129,0.4)`
+- Card Border (default): `rgba(255,255,255,0.15)` or `rgba(255,255,255,0.2)`
+- Card Border (accent): `rgba(16,185,129,0.3)`
 - Primary Accent: `#10b981`
+- Section Labels: `#10b981` (green, uppercase)
+- Divider Lines: `rgba(255,255,255,0.2)`
 - Text Primary: `#FFFFFF`
 - Text Secondary: `rgba(255,255,255,0.5)`
 - Text Muted: `rgba(255,255,255,0.4)`
@@ -143,7 +171,9 @@ When cards feel cluttered, remove secondary/tertiary text rather than adjusting 
 - Screen horizontal padding: 24px
 - Card padding: 20-24px
 - Card border-radius: 20px
-- Card marginBottom: 16-24px
+- Card marginBottom: 12-16px
+- Section label marginBottom: 12px
+- "or" divider marginVertical: 24px
 - Button border-radius: 12px
 - Gap between card elements: 8px
 
@@ -151,22 +181,25 @@ When cards feel cluttered, remove secondary/tertiary text rather than adjusting 
 - App Title: 36px, bold, letterSpacing: -1
 - Screen Title: 28px, fontWeight: 700
 - Card Title: 20-22px, fontWeight: 700
+- Section Label: 13px, fontWeight: 600, letterSpacing: 1, uppercase, green
 - Section Header: 16-18px, fontWeight: 600
 - Body: 14-15px, fontWeight: 400
+- "or" divider text: 14px, rgba(255,255,255,0.5)
 - Nudge/Accent Text: 15px, #10b981
 - Caption: 12-14px
 - Skip Link: 17px, fontWeight: 500
 
 ---
 
-## ⭐️ Next Steps
+## ⏳ In Progress / Next Steps
 
-### Workouts Tab (`app/(tabs)/workouts.tsx`)
-- ✅ Start Empty Workout card (accent variant) - DONE
-- ⬜ Routine cards - need to update with Card component
-- ⬜ Section header styling ("Routines")
-- ⬜ Add gradient glow effect
-- ⬜ Hide header bar
+### Start Tab - Remaining Work
+- ⬜ Fix recommendation rotation logic (should rotate A → B → A, not pick longest-unused)
+
+### Future Enhancements
+- ⬜ "Continue Workout" resume state (if user closes app mid-workout)
+- ⬜ "Repeat Workout" button in History detail view
+- ⬜ Body heatmap on Dashboard (replace bridge CTA area)
 
 ### Library Tab (`app/(tabs)/library.tsx`)
 - ⬜ Search bar styling
@@ -193,6 +226,18 @@ After each change:
 4. [ ] Navigation still works
 5. [ ] Data displays correctly (workout counts, routines, etc.)
 
+### Start Tab Testing
+1. [ ] "TODAY'S RECOMMENDATION" label visible (green)
+2. [ ] Recommendation card shows routine name, duration, last done context
+3. [ ] "or" divider visible between recommendation and alternatives
+4. [ ] "Start Empty Workout" shows subtitle, has chevron, no plus icon
+5. [ ] "YOUR ROUTINES" label visible (green)
+6. [ ] Recommended routine does NOT appear in routines list
+7. [ ] Routine cards have chevrons, not Start buttons
+8. [ ] Only recommendation card has green Start button
+9. [ ] Routines sorted by last used, then alphabetically
+10. [ ] Tapping any card navigates correctly
+
 ### Onboarding-Specific Testing
 1. [ ] Reset onboarding via Settings button
 2. [ ] All 4 screens display correctly
@@ -202,4 +247,28 @@ After each change:
 6. [ ] Weekly goal picker works (1-7 range)
 7. [ ] "Start Training" seeds database and navigates to Dashboard
 8. [ ] Skip path works (no seeding, just completes onboarding)
-9. [ ] Selected track's routines appear in Workouts tab
+9. [ ] Selected track's routines appear in Start tab
+
+---
+
+## 📐 UX Architecture Reference
+
+### User Mindsets When Opening App
+1. **"Decide for me"** → Recommendation card (primary CTA)
+2. **"I'll wing it"** → Start Empty Workout (secondary)
+3. **"I know what I want"** → Your Routines list (secondary)
+
+### Tab Purposes
+| Tab | Purpose | Primary Action |
+|-----|---------|----------------|
+| Dashboard | Reflection & progress | View stats, then navigate to Start |
+| Start | Begin a workout | Start recommended, empty, or chosen routine |
+| Library | Reference & learning | Look up exercises, view PRs |
+| History | Review past work | View/edit past workouts |
+| Settings | Configuration | Backup, preferences, testing |
+
+### Information Hierarchy on Start Tab
+1. **TODAY'S RECOMMENDATION** - The app's best suggestion (primary)
+2. **"or" divider** - Visual break signaling alternatives
+3. **Start Empty Workout** - Freestyle option (secondary)
+4. **YOUR ROUTINES** - Manual selection (secondary)
