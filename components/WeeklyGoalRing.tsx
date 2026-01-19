@@ -17,7 +17,8 @@ export default function WeeklyGoalRing({ currentCount, goal, streak, onEditGoal 
       activeStrokeColor={currentCount > 0 ? "#10b981" : "transparent"}
       inActiveStrokeColor="#444444"
       activeStrokeWidth={10}
-      inActiveStrokeWidth={10}>
+      inActiveStrokeWidth={10}
+      rotation={-90}>
       <View style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
         <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700' }}>
           {currentCount}
