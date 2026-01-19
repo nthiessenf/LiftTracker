@@ -34,6 +34,7 @@ export default function WorkoutsScreen() {
         ORDER BY last_used_date DESC, r.name ASC`
       );
       console.log('DEBUG - Routines found:', routines.length, routines);
+      console.log('Fetched routines:', routines);
 
       // For each routine, fetch associated exercise IDs and estimated duration
       const routinesWithExercises: Routine[] = await Promise.all(
@@ -69,7 +70,7 @@ export default function WorkoutsScreen() {
 
         // Get all routines ordered by id ASC (for consistent rotation)
         const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
-          'SELECT id, name FROM routines ORDER BY id ASC'
+          'SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY id ASC'
         );
 
         let nextRoutineIndex = 0; // Default to first routine
@@ -504,19 +505,25 @@ export default function WorkoutsScreen() {
         </View>
 
         {/* Routine Cards */}
-        {userRoutines.filter((routine) => routine.id !== nextWorkout?.id).length > 0 ? (
-          userRoutines
-            .filter((routine) => routine.id !== nextWorkout?.id)
-            .map((routine) => (
+        {(() => {
+          const displayedRoutines = userRoutines.filter((routine) => routine.id !== nextWorkout?.id);
+          console.log('DEBUG - nextWorkout?.id:', nextWorkout?.id);
+          console.log('DEBUG - userRoutines count:', userRoutines.length);
+          console.log('DEBUG - displayedRoutines count:', displayedRoutines.length);
+          console.log('DEBUG - displayedRoutines:', displayedRoutines.map(r => ({ id: r.id, name: r.name })));
+          
+          return displayedRoutines.length > 0 ? (
+            displayedRoutines.map((routine) => (
               <View key={routine.id}>{renderRoutineItem({ item: routine })}</View>
             ))
-        ) : (
-          <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontStyle: 'italic' }}>
-              No routines yet. Create one to get started!
-            </Text>
-          </View>
-        )}
+          ) : (
+            <View style={{ marginHorizontal: 24, marginBottom: 12 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, fontStyle: 'italic' }}>
+                No routines yet. Create one to get started!
+              </Text>
+            </View>
+          );
+        })()}
       </ScrollView>
     </View>
   );
