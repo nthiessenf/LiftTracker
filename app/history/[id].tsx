@@ -234,6 +234,9 @@ export default function WorkoutDetailScreen() {
         onPress: async () => {
           try {
             await deleteWorkout(db, id);
+            // Small delay to ensure database transaction is committed before navigation
+            // This ensures useFocusEffect in history.tsx will see the updated data
+            await new Promise(resolve => setTimeout(resolve, 100));
             router.back();
           } catch (error) {
             console.error('Error deleting workout:', error);
