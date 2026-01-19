@@ -462,73 +462,53 @@ export default function WorkoutDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Workout Summary Card */}
-            <Card variant="default" style={{ marginBottom: 24 }}>
-              {isEditing ? (
-                <>
-                  <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Workout Name</Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      color: '#fff',
-                      fontSize: 20,
-                      padding: 12,
-                      marginBottom: 16,
-                    }}
-                    placeholder="Enter workout name"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={editName}
-                    onChangeText={setEditName}
-                  />
-                  <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Date (YYYY-MM-DD)</Text>
-                  <TextInput
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.05)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: 8,
-                      color: '#fff',
-                      fontSize: 20,
-                      padding: 12,
-                    }}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    value={editDate}
-                    onChangeText={setEditDate}
-                  />
-                </>
-              ) : (
-                <>
-                  <Text style={{
-                    fontSize: 24,
-                    fontWeight: '700',
+            {/* Workout Summary */}
+            {isEditing ? (
+              <Card variant="default" style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Workout Name</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: 8,
                     color: '#fff',
-                    marginBottom: 4,
-                  }}>
-                    {workout.name || 'Untitled Workout'}
-                  </Text>
-                  <Text style={{
-                    fontSize: 15,
-                    color: 'rgba(255,255,255,0.5)',
-                    marginTop: 4,
-                  }}>
-                    {formatDateSafe(workout.date)}
-                  </Text>
-                  {workout.duration_seconds && (
-                    <Text style={{
-                      fontSize: 15,
-                      color: 'rgba(255,255,255,0.5)',
-                      marginTop: 4,
-                    }}>
-                      Duration: {formatDuration(workout.duration_seconds)}
-                    </Text>
-                  )}
-                </>
-              )}
-            </Card>
+                    fontSize: 20,
+                    padding: 12,
+                    marginBottom: 16,
+                  }}
+                  placeholder="Enter workout name"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>Date (YYYY-MM-DD)</Text>
+                <TextInput
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontSize: 20,
+                    padding: 12,
+                  }}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={editDate}
+                  onChangeText={setEditDate}
+                />
+              </Card>
+            ) : (
+              <View style={{ paddingHorizontal: 24, paddingTop: 16, marginBottom: 16 }}>
+                <Text style={{ fontSize: 28, fontWeight: '700', color: '#fff', marginBottom: 4 }}>
+                  {workout.name || 'Workout'}
+                </Text>
+                <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
+                  {formatDateSafe(workout.date)}
+                </Text>
+              </View>
+            )}
 
             {/* Exercise Cards */}
             {exerciseGroups.map((group) => (
