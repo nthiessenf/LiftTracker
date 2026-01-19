@@ -195,6 +195,16 @@ export async function seedDatabaseWithTrack(db: SQLiteDatabase, trackKey: string
       throw new Error(`Training track '${trackKey}' not found`);
     }
 
+    // Check if routines already exist (prevent duplicate seeding)
+    const existingRoutines = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM routines WHERE is_temporary = 0'
+    );
+
+    if (existingRoutines && existingRoutines.count > 0) {
+      console.log('Routines already exist, skipping seed');
+      return { success: true };
+    }
+
     await db.withTransactionAsync(async () => {
       const now = new Date().toISOString();
       let baseTimestamp = Date.now();
