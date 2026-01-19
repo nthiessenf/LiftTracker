@@ -511,7 +511,11 @@ export default function WorkoutDetailScreen() {
             )}
 
             {/* Exercise Cards */}
-            {exerciseGroups.map((group) => (
+            {exerciseGroups.filter(group => {
+              // Filter to sets that have actual data (weight or reps filled in)
+              const completedSets = group.sets.filter(set => set.weight !== null || set.reps !== null);
+              return completedSets.length > 0;
+            }).map((group) => (
               <Card
                 key={group.exerciseId}
                 variant="default"
