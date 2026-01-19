@@ -183,6 +183,19 @@ export default function ActiveSessionScreen() {
     );
   };
 
+  const handleRemoveSet = (exerciseId: string, setId: string) => {
+    setSessionExercises(
+      sessionExercises.map((ex) =>
+        ex.exerciseId === exerciseId
+          ? {
+              ...ex,
+              sets: ex.sets.filter((set) => set.id !== setId),
+            }
+          : ex
+      )
+    );
+  };
+
   const startRestTimer = () => {
     if (restTimerSeconds > 0) {
       // Timer already running, don't restart
@@ -396,6 +409,19 @@ export default function ActiveSessionScreen() {
           borderBottomWidth: index < totalSets - 1 ? 1 : 0,
           borderBottomColor: 'rgba(255,255,255,0.1)',
         }}>
+        <Pressable
+          onPress={() => handleRemoveSet(exerciseId, set.id)}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: 'rgba(239,68,68,0.2)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 8,
+          }}>
+          <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: '600' }}>×</Text>
+        </Pressable>
         <View
           style={{
             width: 28,
