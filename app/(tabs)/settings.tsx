@@ -319,62 +319,6 @@ export default function SettingsScreen() {
             ⚠️ Reset Onboarding (TEMPORARY)
           </Text>
         </Pressable>
-
-        {/* TEMPORARY: Debug Routines Button */}
-        <Pressable
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            padding: 16,
-            borderRadius: 12,
-            marginTop: 12,
-          }}
-          onPress={async () => {
-            const routines = await db.getAllAsync<{ id: string; name: string; is_temporary: number }>(
-              'SELECT id, name, is_temporary FROM routines ORDER BY name ASC'
-            );
-            Alert.alert(
-              'All Routines in DB',
-              routines.map(r => `${r.name} (temp: ${r.is_temporary})\nID: ${r.id.slice(0,8)}...`).join('\n\n')
-            );
-          }}
-        >
-          <Text style={{ color: '#fff', textAlign: 'center' }}>Debug: Show All Routines</Text>
-        </Pressable>
-
-        {/* TEMPORARY: Remove Duplicate Routines Button */}
-        <Pressable
-          style={{
-            backgroundColor: 'rgba(239,68,68,0.2)',
-            padding: 16,
-            borderRadius: 12,
-            marginTop: 12,
-            marginBottom: 32,
-          }}
-          onPress={async () => {
-            // Find duplicates - get all routines grouped by name, keep only the first (oldest) ID for each name
-            const duplicates = await db.getAllAsync<{ id: string; name: string }>(
-              `SELECT id, name FROM routines 
-               WHERE is_temporary = 0 
-               AND id NOT IN (
-                 SELECT MIN(id) FROM routines WHERE is_temporary = 0 GROUP BY name
-               )`
-            );
-            
-            if (duplicates.length === 0) {
-              Alert.alert('No Duplicates', 'No duplicate routines found.');
-              return;
-            }
-            
-            // Delete the duplicates
-            for (const dup of duplicates) {
-              await db.runAsync('DELETE FROM routines WHERE id = ?', [dup.id]);
-            }
-            
-            Alert.alert('Cleaned Up', `Removed ${duplicates.length} duplicate routine(s).`);
-          }}
-        >
-          <Text style={{ color: '#ef4444', textAlign: 'center' }}>Debug: Remove Duplicate Routines</Text>
-        </Pressable>
       </ScrollView>
     </View>
   );
