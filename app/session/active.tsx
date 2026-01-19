@@ -184,16 +184,26 @@ export default function ActiveSessionScreen() {
   };
 
   const handleRemoveSet = (exerciseId: string, setId: string) => {
-    setSessionExercises(
-      sessionExercises.map((ex) =>
+    setSessionExercises((prevExercises) => {
+      // Map through exercises and remove the set
+      const updatedExercises = prevExercises.map((ex) =>
         ex.exerciseId === exerciseId
           ? {
               ...ex,
               sets: ex.sets.filter((set) => set.id !== setId),
             }
           : ex
-      )
-    );
+      );
+
+      // Check if the exercise now has zero sets after removal
+      const exerciseAfterRemoval = updatedExercises.find((ex) => ex.exerciseId === exerciseId);
+      if (exerciseAfterRemoval && exerciseAfterRemoval.sets.length === 0) {
+        // Remove the entire exercise if it has no sets left
+        return updatedExercises.filter((ex) => ex.exerciseId !== exerciseId);
+      }
+
+      return updatedExercises;
+    });
   };
 
   const startRestTimer = () => {
