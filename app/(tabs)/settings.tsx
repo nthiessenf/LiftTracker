@@ -85,10 +85,22 @@ export default function SettingsScreen() {
   };
 
   const resetOnboarding = async () => {
-    await AsyncStorage.removeItem('HAS_COMPLETED_ONBOARDING');
-    Alert.alert('Reset Complete', 'Onboarding will show on next app launch', [
-      { text: 'Go to Onboarding', onPress: () => router.replace('/onboarding') }
-    ]);
+    try {
+      // Delete all non-temporary routines (these are the seeded ones)
+      await db.runAsync('DELETE FROM routines WHERE is_temporary = 0');
+      
+      // Clear all onboarding-related AsyncStorage keys
+      await AsyncStorage.removeItem('SELECTED_TRACK');
+      await AsyncStorage.removeItem('HAS_COMPLETED_ONBOARDING');
+      await AsyncStorage.removeItem('WEEKLY_WORKOUT_GOAL');
+      
+      Alert.alert('Reset Complete', 'Onboarding will show on next app launch', [
+        { text: 'Go to Onboarding', onPress: () => router.replace('/onboarding') }
+      ]);
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+      Alert.alert('Error', 'Failed to reset onboarding. Please try again.');
+    }
   };
 
   return (
