@@ -71,9 +71,12 @@ export default function WorkoutsScreen() {
       // Determine next workout using track-based rotation
       // Load selected track from AsyncStorage
       const track = await AsyncStorage.getItem('SELECTED_TRACK');
+      console.log('DEBUG: selectedTrack state:', selectedTrack);
+      console.log('DEBUG: SELECTED_TRACK from AsyncStorage:', track);
       
       // If track is NONE or undefined, don't show recommendations
       if (!track || track === 'NONE') {
+        console.log('DEBUG: Track is NONE or undefined, hiding recommendations');
         setNextWorkout(null);
         return;
       }
@@ -84,7 +87,12 @@ export default function WorkoutsScreen() {
         [track]
       );
 
+      console.log('DEBUG: Track-filtered routines found:', trackRoutines.length);
+      console.log('DEBUG: Routine names:', trackRoutines.map(r => r.name));
+      console.log('DEBUG: Track value used in query:', track);
+
       if (trackRoutines.length === 0) {
+        console.log('DEBUG: No track routines found, hiding recommendations');
         setNextWorkout(null);
         return;
       }
@@ -133,7 +141,9 @@ export default function WorkoutsScreen() {
           exerciseIds: exerciseIds,
           estimatedDuration,
         });
+        console.log('DEBUG: nextWorkout result:', nextRoutine.name);
       } else {
+        console.log('DEBUG: nextWorkout result: NULL (no nextRoutine found)');
         setNextWorkout(null);
       }
     } catch (error) {
@@ -163,6 +173,7 @@ export default function WorkoutsScreen() {
   const loadSelectedTrack = useCallback(async () => {
     try {
       const track = await AsyncStorage.getItem('SELECTED_TRACK');
+      console.log('DEBUG: SELECTED_TRACK value:', track);
       setSelectedTrack(track);
     } catch (error) {
       console.error('Failed to load selected track:', error);
