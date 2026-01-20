@@ -387,6 +387,57 @@ export default function ActiveSessionScreen() {
         }
       }
 
+      // Check if this was the recommended workout BEFORE saving
+      // (Calculate what the recommendation would have been before this workout)
+      let wasRecommendedWorkout = false;
+      if (params.templateId) {
+        try {
+          const track = await AsyncStorage.getItem('SELECTED_TRACK');
+          
+          if (track && track !== 'NONE') {
+            // Get all non-temporary routines for this track, ordered by name
+            const trackRoutines = await db.getAllAsync<{ id: string; name: string }>(
+              'SELECT id, name FROM routines WHERE is_temporary = 0 AND track = ? ORDER BY name ASC',
+              [track]
+            );
+
+            if (trackRoutines.length > 0) {
+              // Get the most recent workout that used one of these track routines
+              // (This is BEFORE we insert the current workout)
+              const trackRoutineIds = trackRoutines.map(r => r.id);
+              const placeholders = trackRoutineIds.map(() => '?').join(',');
+              
+              const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
+                `SELECT routine_id FROM workouts 
+                 WHERE routine_id IS NOT NULL 
+                 AND routine_id IN (${placeholders})
+                 ORDER BY date DESC, id DESC LIMIT 1`,
+                trackRoutineIds
+              );
+
+              // Find the next routine in rotation (this is what would be recommended)
+              let nextRoutineIndex = 0;
+              if (lastWorkout?.routine_id) {
+                const lastIndex = trackRoutines.findIndex(r => r.id === lastWorkout.routine_id);
+                if (lastIndex !== -1) {
+                  nextRoutineIndex = (lastIndex + 1) % trackRoutines.length;
+                }
+              }
+
+              const recommendedRoutineId = trackRoutines[nextRoutineIndex]?.id;
+
+              // If the completed workout matches the recommended routine
+              if (recommendedRoutineId === params.templateId) {
+                wasRecommendedWorkout = true;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error checking recommended workout completion:', error);
+          // Don't block the finish flow if this check fails
+        }
+      }
+
       // Use transaction to ensure data integrity
       await db.withTransactionAsync(async () => {
         // Insert workout
@@ -417,6 +468,17 @@ export default function ActiveSessionScreen() {
 
       // Clear saved progress after successfully saving to database
       await clearWorkoutProgress();
+
+      // If this was the recommended workout, save completion date
+      if (wasRecommendedWorkout) {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          await AsyncStorage.setItem('LAST_COMPLETED_RECOMMENDATION_DATE', today);
+        } catch (error) {
+          console.error('Error saving completion date:', error);
+          // Don't block the finish flow if this fails
+        }
+      }
 
       // Show success alert
       Alert.alert('Workout Saved!', 'Your workout has been saved successfully.', [

@@ -233,7 +233,6 @@ export async function seedDatabaseWithTrack(db: SQLiteDatabase, trackKey: string
           'INSERT INTO routines (id, name, created_at, updated_at, track) VALUES (?, ?, ?, ?, ?)',
           [routineId, routine.name, now, now, trackKey]
         );
-        console.log('DEBUG: Seeded routine with track:', trackKey, 'name:', routine.name);
 
         // Loop through exercises and insert into routine_exercises
         for (let i = 0; i < routine.exerciseIds.length; i++) {

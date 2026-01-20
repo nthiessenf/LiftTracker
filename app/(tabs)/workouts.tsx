@@ -23,6 +23,7 @@ export default function WorkoutsScreen() {
   const [userRoutines, setUserRoutines] = useState<Routine[]>([]);
   const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[]; estimatedDuration: number } | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [completedToday, setCompletedToday] = useState(false);
   const [inProgressWorkout, setInProgressWorkout] = useState<{
     templateId: string | null;
     routineName: string | null;
@@ -71,12 +72,9 @@ export default function WorkoutsScreen() {
       // Determine next workout using track-based rotation
       // Load selected track from AsyncStorage
       const track = await AsyncStorage.getItem('SELECTED_TRACK');
-      console.log('DEBUG: selectedTrack state:', selectedTrack);
-      console.log('DEBUG: SELECTED_TRACK from AsyncStorage:', track);
       
       // If track is NONE or undefined, don't show recommendations
       if (!track || track === 'NONE') {
-        console.log('DEBUG: Track is NONE or undefined, hiding recommendations');
         setNextWorkout(null);
         return;
       }
@@ -87,12 +85,7 @@ export default function WorkoutsScreen() {
         [track]
       );
 
-      console.log('DEBUG: Track-filtered routines found:', trackRoutines.length);
-      console.log('DEBUG: Routine names:', trackRoutines.map(r => r.name));
-      console.log('DEBUG: Track value used in query:', track);
-
       if (trackRoutines.length === 0) {
-        console.log('DEBUG: No track routines found, hiding recommendations');
         setNextWorkout(null);
         return;
       }
@@ -141,9 +134,7 @@ export default function WorkoutsScreen() {
           exerciseIds: exerciseIds,
           estimatedDuration,
         });
-        console.log('DEBUG: nextWorkout result:', nextRoutine.name);
       } else {
-        console.log('DEBUG: nextWorkout result: NULL (no nextRoutine found)');
         setNextWorkout(null);
       }
     } catch (error) {
@@ -173,7 +164,6 @@ export default function WorkoutsScreen() {
   const loadSelectedTrack = useCallback(async () => {
     try {
       const track = await AsyncStorage.getItem('SELECTED_TRACK');
-      console.log('DEBUG: SELECTED_TRACK value:', track);
       setSelectedTrack(track);
     } catch (error) {
       console.error('Failed to load selected track:', error);
@@ -214,12 +204,25 @@ export default function WorkoutsScreen() {
     return `${Math.floor(diffHours / 24)}d ago`;
   };
 
+  // Check if recommendation was completed today
+  const checkCompletionStatus = useCallback(async () => {
+    try {
+      const lastCompletedDate = await AsyncStorage.getItem('LAST_COMPLETED_RECOMMENDATION_DATE');
+      const today = new Date().toISOString().split('T')[0];
+      setCompletedToday(lastCompletedDate === today);
+    } catch (error) {
+      console.error('Failed to check completion status:', error);
+      setCompletedToday(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       checkForInProgressWorkout();
       loadSelectedTrack();
+      checkCompletionStatus();
       loadUserRoutines();
-    }, [checkForInProgressWorkout, loadSelectedTrack, loadUserRoutines])
+    }, [checkForInProgressWorkout, loadSelectedTrack, checkCompletionStatus, loadUserRoutines])
   );
 
   const handleStartRoutine = (routine: Routine) => {
@@ -567,40 +570,81 @@ export default function WorkoutsScreen() {
         {/* TODAY'S RECOMMENDATION Section */}
         {!inProgressWorkout && nextWorkout && (
           <>
-            <Text style={{ 
-              color: '#10b981', 
-              fontSize: 13, 
-              fontWeight: '600', 
-              letterSpacing: 1,
-              marginBottom: 12,
-              marginHorizontal: 24,
-              textTransform: 'uppercase'
-            }}>
-              TODAY'S RECOMMENDATION
-            </Text>
-            <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 0 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ 
-                    color: '#FFFFFF', 
-                    fontSize: 22, 
-                    fontWeight: '700',
-                    marginBottom: 4
-                  }}>
-                    {nextWorkout.name}
-                  </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
-                    {nextWorkout.estimatedDuration > 0 && `~${formatDuration(nextWorkout.estimatedDuration)}`}
-                    {nextWorkout.estimatedDuration > 0 && getRecommendationContext() && ' • '}
-                    {getRecommendationContext()}
-                  </Text>
-                </View>
-                <Button 
-                  title="Start →" 
-                  onPress={handleStartNextWorkout} 
-                />
-              </View>
-            </Card>
+            {completedToday ? (
+              // Celebration Card
+              <>
+                <Text style={{ 
+                  color: '#10b981', 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  letterSpacing: 1,
+                  marginBottom: 12,
+                  marginHorizontal: 24,
+                  textTransform: 'uppercase'
+                }}>
+                  TODAY'S RECOMMENDATION
+                </Text>
+                <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 0 }}>
+                  <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                    <Text style={{ fontSize: 48, marginBottom: 12 }}>🎉</Text>
+                    <Text style={{ 
+                      color: '#FFFFFF', 
+                      fontSize: 22, 
+                      fontWeight: '700',
+                      marginBottom: 4,
+                      textAlign: 'center'
+                    }}>
+                      You crushed it!
+                    </Text>
+                    <Text style={{ 
+                      color: 'rgba(255,255,255,0.5)', 
+                      fontSize: 14,
+                      textAlign: 'center'
+                    }}>
+                      Today's workout complete. Rest up!
+                    </Text>
+                  </View>
+                </Card>
+              </>
+            ) : (
+              // Normal Recommendation Card
+              <>
+                <Text style={{ 
+                  color: '#10b981', 
+                  fontSize: 13, 
+                  fontWeight: '600', 
+                  letterSpacing: 1,
+                  marginBottom: 12,
+                  marginHorizontal: 24,
+                  textTransform: 'uppercase'
+                }}>
+                  TODAY'S RECOMMENDATION
+                </Text>
+                <Card variant="accent" style={{ marginHorizontal: 24, marginBottom: 0 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ 
+                        color: '#FFFFFF', 
+                        fontSize: 22, 
+                        fontWeight: '700',
+                        marginBottom: 4
+                      }}>
+                        {nextWorkout.name}
+                      </Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                        {nextWorkout.estimatedDuration > 0 && `~${formatDuration(nextWorkout.estimatedDuration)}`}
+                        {nextWorkout.estimatedDuration > 0 && getRecommendationContext() && ' • '}
+                        {getRecommendationContext()}
+                      </Text>
+                    </View>
+                    <Button 
+                      title="Start →" 
+                      onPress={handleStartNextWorkout} 
+                    />
+                  </View>
+                </Card>
+              </>
+            )}
           </>
         )}
 

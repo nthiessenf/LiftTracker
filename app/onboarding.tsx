@@ -50,7 +50,6 @@ export default function OnboardingScreen() {
 
       // Save selected track to AsyncStorage (or "NONE" if skipped)
       const trackValue = selectedTrack || 'NONE';
-      console.log('DEBUG: Saved SELECTED_TRACK as:', trackValue);
       await AsyncStorage.setItem('SELECTED_TRACK', trackValue);
 
       // Seed the database with the selected track (if one was selected)
