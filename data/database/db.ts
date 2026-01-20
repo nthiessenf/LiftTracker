@@ -53,7 +53,8 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
           name TEXT NOT NULL,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
-          is_temporary INTEGER DEFAULT 0
+          is_temporary INTEGER DEFAULT 0,
+          track TEXT
         );
       `);
 
@@ -119,6 +120,16 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     // This ensures existing databases get the is_temporary column
     // Safe to run even if column already exists
     await addColumnIfNotExists(db, 'routines', 'is_temporary', 'INTEGER DEFAULT 0');
+
+    // Migration 4: Add track column to routines table (idempotent)
+    // This tracks which training track a routine belongs to (FULL_BODY, PPL, UPPER_LOWER, or NULL)
+    if (currentVersion < 4) {
+      await addColumnIfNotExists(db, 'routines', 'track', 'TEXT');
+      await db.execAsync('PRAGMA user_version = 4;');
+    } else {
+      // Even if version is >= 4, ensure the column exists
+      await addColumnIfNotExists(db, 'routines', 'track', 'TEXT');
+    }
   } catch (error) {
     console.error('Database migration error:', error);
     throw error;
@@ -215,10 +226,10 @@ export async function seedDatabaseWithTrack(db: SQLiteDatabase, trackKey: string
         const routineId = `${baseTimestamp}-${Math.random().toString(36).substr(2, 9)}`;
         baseTimestamp += 1; // Increment to ensure uniqueness
 
-        // Insert routine into routines table
+        // Insert routine into routines table with track
         await db.runAsync(
-          'INSERT INTO routines (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-          [routineId, routine.name, now, now]
+          'INSERT INTO routines (id, name, created_at, updated_at, track) VALUES (?, ?, ?, ?, ?)',
+          [routineId, routine.name, now, now, trackKey]
         );
 
         // Loop through exercises and insert into routine_exercises

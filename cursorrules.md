@@ -12,9 +12,10 @@
 * **Navigation:** Expo Router (File-based routing)
 * **Styling:** NativeWind (Tailwind CSS for React Native)
 * **Data (Content):** `expo-sqlite` (Routines, Workouts, Sets)
-* **Data (Prefs):** `AsyncStorage` (Simple settings like Weekly Goals, Onboarding flags)
+* **Data (Prefs):** `AsyncStorage` (Simple settings like Weekly Goals, Onboarding flags, In-Progress Workouts)
 * **Visualization:** 
   * `react-native-circular-progress-indicator` (Weekly Goal Ring)
+  * `react-native-svg` (Timer countdown ring)
   * `react-native-body-highlighter` (Muscle Recovery Heatmap - planned)
   * `react-native-calendars` (History Calendar View)
   * `react-native-pager-view` (Swipeable onboarding screens)
@@ -31,6 +32,7 @@ The app uses a **Hybrid Data Model**. You must understand where data lives to wr
 * **Source:** `data/tracks.ts`
 * **Purpose:** Defines pre-built routine collections for onboarding (Full Body, Push/Pull/Legs, Upper/Lower).
 * **Used by:** `seedDatabaseWithTrack()` in `data/database/db.ts` to populate routines during onboarding.
+* **Note:** `seedDatabaseWithTrack()` now checks for existing routines before seeding to prevent duplicates.
 
 ### C. Routine Templates (Code)
 * **Source:** `data/templates.ts`
@@ -41,7 +43,12 @@ The app uses a **Hybrid Data Model**. You must understand where data lives to wr
 * **Purpose:** Stores user-created routines, logs, and history.
 * **Migration Status:** As of Jan 2026, the app uses a "Pure SQLite" architecture. Hardcoded JSON templates have been removed.
 
-### E. Database Schema
+### E. In-Progress Workout State (AsyncStorage)
+* **Key:** `IN_PROGRESS_WORKOUT`
+* **Purpose:** Persists active workout state so users can resume if app closes mid-workout.
+* **Cleared:** When workout is finished or cancelled.
+
+### F. Database Schema
 ```sql
 -- Table: routines
 -- Stores user-defined workout plans.
@@ -106,7 +113,7 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 
 ### Navigation Logic (Updated Jan 2026)
 * **Dashboard (index.tsx):** Reflection & progress stats. Contains bridge CTA to Start tab.
-* **Start (workouts.tsx):** THE place to begin any workout. Shows recommendation, empty workout option, and routine list.
+* **Start (workouts.tsx):** THE place to begin any workout. Shows in-progress workout (if exists), recommendation, empty workout option, and routine list.
 * **Library (library.tsx):** Exercise reference and knowledge base.
 * **History (history.tsx):** Review and edit past workouts.
 * **Settings (settings.tsx):** Backup, preferences, testing tools.
@@ -128,20 +135,28 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * Uses `HAS_COMPLETED_ONBOARDING` in AsyncStorage to prevent loops
 * Calls `seedDatabaseWithTrack()` to populate routines based on user selection
 * Skip option allows users to start with empty routines
+* **Duplicate prevention:** `seedDatabaseWithTrack()` checks for existing routines before inserting
 
 ### Dashboard (`app/(tabs)/index.tsx`)
 * Green "Goal Ring" tracks weekly workouts with streak counter
+* **Ring starts at 12 o'clock position** (rotation={0})
 * Weekly Progress dots show workout status for current week
 * Glass-morphism design with green gradient glow effect
 * Simple bridge CTA at bottom: "Ready to train? Start a workout →" (links to Start tab)
 * **Note:** Recommendation card removed - now lives on Start tab
 * **Note:** Body heatmap feature planned for future
 
-### Start Tab (`app/(tabs)/workouts.tsx`) - UPDATED
+### Start Tab (`app/(tabs)/workouts.tsx`)
 * **Tab renamed from "Workout" to "Start"**
-* **"Recommended for Today" card** at top with:
+* **"WORKOUT IN PROGRESS" card (orange)** appears at top when user has an abandoned workout:
+  * Shows routine name and time since started
+  * "Continue Workout" button (primary action)
+  * "Discard workout" button (secondary)
+  * Hides recommendation card when present (user should resume, not start new)
+* **"Recommended for Today" card** (green) with:
   * Routine name, estimated duration, "last done X days ago" context
-  * Green "Start" button (only primary CTA on screen)
+  * Green "Start" button (only primary CTA when no in-progress workout)
+  * **Rotation logic:** Cycles through routines alphabetically (A→B→A→B), not longest-unused
 * **Section structure with clear visual hierarchy:**
   * "TODAY'S RECOMMENDATION" label (green, uppercase)
   * "or" divider (lines with centered text)
@@ -149,13 +164,24 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * **"Start Empty Workout" card** with subtitle "Add exercises as you go", chevron (no button)
 * **Routine cards** with chevrons (no Start buttons), sorted by last used then alphabetically
 * **Recommended routine hidden from list** (no duplication)
-* **Known issue:** Recommendation rotation logic needs fix (should cycle A→B→A, currently picks longest-unused)
 
 ### Active Session (`app/session/active.tsx`)
 * Smart Pre-fill: Queries SQLite for the last session of that specific exercise to fill weight/reps
+* **Add Set auto-fill:** New sets auto-populate with weight/reps from previous set in same session
+* **Remove sets:** Users can delete sets before finishing workout (X button on each set row)
+* **Auto-remove empty exercises:** When all sets are deleted from an exercise, the exercise card is removed
 * Saves `routine_id` to history to maintain lineage
 * Supports temporary routines (can be saved after completion)
-* Rest timer functionality
+* **Workout state persistence:** Saves to AsyncStorage on every change for resume capability
+* Clears saved state on finish or cancel
+
+### Rest Timer (`app/session/timer.tsx`)
+* **Full-screen dedicated timer page** (replaced overlay modal)
+* Large countdown display (MM:SS format)
+* **Circular countdown ring** using react-native-svg that depletes as time runs out
+* "Skip" button to end early
+* Auto-returns to active session when timer completes
+* Vibration alert on completion
 
 ### Library (`app/(tabs)/library.tsx`)
 * Hybrid view: Shows static instructions + MAX(weight) from history
@@ -164,8 +190,14 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 
 ### History (`app/(tabs)/history.tsx`)
 * Calendar view with marked workout days
+* **Calendar updates after deletion:** Marks refresh when workouts are deleted
 * Fully editable. Users can add new exercises to past workouts
 * Workout detail view (`app/history/[id].tsx`) allows editing sets
+
+### History Detail (`app/history/[id].tsx`)
+* **Title without card:** Workout name and date display as plain text (no card background)
+* **Hides zero-set exercises:** Only shows exercises where at least one set has weight or reps logged
+* Edit functionality for sets
 
 ### Routines (`app/routines/`)
 * Create routine (`create.tsx`): Template gallery + manual exercise selection
@@ -177,7 +209,8 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * Includes `routine_exercises` table in exports
 
 ### Settings (`app/(tabs)/settings.tsx`)
-* Contains "Reset Onboarding" button for testing (consider removing for production)
+* Contains "Reset Onboarding" button for testing (keep for now, consider hiding before App Store)
+* Backup/restore functionality
 
 ## 6. Key File Structure
 
@@ -200,7 +233,8 @@ app/
 │   └── detail/
 │       └── [id].tsx       # Routine Preview
 ├── session/
-│   └── active.tsx         # Active Workout Logger
+│   ├── active.tsx         # Active Workout Logger
+│   └── timer.tsx          # Full-screen rest timer with countdown ring
 ├── onboarding.tsx         # 4-screen onboarding flow
 └── _layout.tsx            # Root layout with SQLiteProvider
 
@@ -225,7 +259,7 @@ data/
 
 ### Database Helpers (`data/database/db.ts`)
 * `migrateDbIfNeeded()` - Handles schema migrations
-* `seedDatabaseWithTrack()` - Populates routines from a training track (used in onboarding)
+* `seedDatabaseWithTrack()` - Populates routines from a training track (used in onboarding). **Now checks for existing routines before seeding.**
 * `getLastTrainedDateByMuscleGroup()` - Returns muscle recovery dates
 * `getRoutineDurationEstimate()` - Calculates estimated workout time
 * `generateSmartRoutine()` - Creates routine based on muscle freshness
@@ -244,14 +278,20 @@ data/
   * `PPL` - Push A, Pull A, Legs A (ideal for 3-6x/week)
   * `UPPER_LOWER` - Upper A, Lower A (ideal for 3-4x/week)
 
+### AsyncStorage Keys
+* `HAS_COMPLETED_ONBOARDING` - Boolean flag for onboarding completion
+* `WEEKLY_GOAL` - Number (1-7) for weekly workout target
+* `IN_PROGRESS_WORKOUT` - JSON object with workout state for resume functionality
+
 ## 8. Design Principles
 
 ### Dark Mode Default
 * Background: `#0a0a0a` (screens), `#121212` (alt)
 * Card Background: `rgba(255,255,255,0.06)`
 * Card Border: `rgba(255,255,255,0.15)` or `rgba(255,255,255,0.2)`
-* Card Border (accent): `rgba(16,185,129,0.3)`
+* Card Border (accent): `rgba(16,185,129,0.3)` (green), `rgba(245,158,11,0.3)` (orange for in-progress)
 * Primary Accent: `#10b981` (green)
+* Warning/In-Progress Accent: `#f59e0b` (orange)
 * Section Labels: `#10b981` (green, uppercase, 13px)
 * Divider Lines: `rgba(255,255,255,0.2)`
 * Text Primary: `#FFFFFF`
@@ -265,7 +305,7 @@ data/
 * Card-based design with 20px border-radius
 
 ### CTA Hierarchy (IMPORTANT)
-* **Primary CTA (green button):** Only ONE per screen, for the main action
+* **Primary CTA (colored button):** Only ONE per screen, for the main action
 * **Secondary actions (chevrons →):** For alternative paths, entire card is tappable
 * This reduces decision fatigue and creates clear visual hierarchy
 
@@ -328,6 +368,13 @@ WHERE r.is_temporary = 0
 ORDER BY last_used_date DESC NULLS LAST, r.name ASC
 ```
 
+### Recommendation Rotation (Alphabetical Cycling)
+```sql
+-- Get routines ordered alphabetically for consistent rotation
+SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY name ASC
+-- Then find last workout's routine and pick the next one in the list (wrapping around)
+```
+
 ## 10. Troubleshooting Notes
 
 * **Onboarding Loop:** Check `HAS_COMPLETED_ONBOARDING` flag in AsyncStorage
@@ -337,18 +384,24 @@ ORDER BY last_used_date DESC NULLS LAST, r.name ASC
 * **Exercise Lookups:** Always reference `data/exercises.ts`, never query DB for exercises
 * **Gradient Effects:** Reuse the Dashboard's green gradient glow pattern; don't create new implementations
 * **Pressable Styling:** Don't use dynamic style functions - use static inline styles only (NativeWind conflict)
+* **LayoutAnimation:** Doesn't work reliably in ScrollView/FlatList - use react-native-reanimated for list animations
+* **Expo Go Connectivity:** If connection drops, use `npx expo start --tunnel --clear` for more reliable connection
+* **Calendar Not Updating:** After deleting workouts, ensure a small delay before router.back() so database commits
 
 ## 11. Known Issues & Planned Work
 
-### Known Issues
-* **Recommendation rotation logic:** Currently picks longest-unused routine. Should cycle through routines in order (A→B→A→B).
-
-### Planned Features
-* **Continue Workout:** Resume state if user closes app mid-workout
-* **Repeat Workout:** Button in History detail to redo a past workout  
+### Planned Features (Priority Backlog)
+* **Repeat Workout:** Button in History detail to redo a past workout with one tap
 * **Body Heatmap:** Visual muscle recovery indicator on Dashboard (replace bridge CTA area)
 
 ### UI Polish Remaining
 * Library tab styling updates
-* History tab styling updates
+* History tab styling updates  
 * Settings tab styling updates
+* List item deletion animations (requires react-native-reanimated)
+
+### Pre-App Store Checklist
+* Consider hiding "Reset Onboarding" behind a gesture (tap version 5 times)
+* Remove any remaining debug buttons
+* Test full onboarding flow
+* Create demo videos for portfolio

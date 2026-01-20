@@ -22,6 +22,7 @@ export default function WorkoutsScreen() {
   const db = useSQLiteContext();
   const [userRoutines, setUserRoutines] = useState<Routine[]>([]);
   const [nextWorkout, setNextWorkout] = useState<{ id: string; name: string; exerciseIds: string[]; estimatedDuration: number } | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [inProgressWorkout, setInProgressWorkout] = useState<{
     templateId: string | null;
     routineName: string | null;
@@ -67,54 +68,73 @@ export default function WorkoutsScreen() {
 
       setUserRoutines(routinesWithExercises);
 
-      // Determine next workout using routine rotation (A → B → A → B)
-      if (routines.length === 0) {
+      // Determine next workout using track-based rotation
+      // Load selected track from AsyncStorage
+      const track = await AsyncStorage.getItem('SELECTED_TRACK');
+      
+      // If track is NONE or undefined, don't show recommendations
+      if (!track || track === 'NONE') {
         setNextWorkout(null);
+        return;
+      }
+
+      // Get all non-temporary routines for this track, ordered by name for consistent rotation
+      const trackRoutines = await db.getAllAsync<{ id: string; name: string }>(
+        'SELECT id, name FROM routines WHERE is_temporary = 0 AND track = ? ORDER BY name ASC',
+        [track]
+      );
+
+      if (trackRoutines.length === 0) {
+        setNextWorkout(null);
+        return;
+      }
+
+      // Get the most recent workout that used one of these track routines
+      // First get all routine IDs for this track
+      const trackRoutineIds = trackRoutines.map(r => r.id);
+      const placeholders = trackRoutineIds.map(() => '?').join(',');
+      
+      const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
+        `SELECT routine_id FROM workouts 
+         WHERE routine_id IS NOT NULL 
+         AND routine_id IN (${placeholders})
+         ORDER BY date DESC, id DESC LIMIT 1`,
+        trackRoutineIds
+      );
+
+      // Find the next routine in rotation
+      let nextRoutineIndex = 0;
+
+      if (lastWorkout?.routine_id) {
+        const lastIndex = trackRoutines.findIndex(r => r.id === lastWorkout.routine_id);
+        if (lastIndex !== -1) {
+          // Move to next routine, wrap around to 0 if at end
+          nextRoutineIndex = (lastIndex + 1) % trackRoutines.length;
+        }
+      }
+
+      const nextRoutine = trackRoutines[nextRoutineIndex];
+
+      if (nextRoutine) {
+        // Get exercise IDs for the next routine
+        const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
+          'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
+          [nextRoutine.id]
+        );
+
+        const exerciseIds = routineExercises.map((row) => row.exercise_id);
+        
+        // Get estimated duration
+        const estimatedDuration = await getRoutineDurationEstimate(db, nextRoutine.id);
+
+        setNextWorkout({
+          id: nextRoutine.id,
+          name: nextRoutine.name,
+          exerciseIds: exerciseIds,
+          estimatedDuration,
+        });
       } else {
-        // Get all non-temporary routines ordered consistently (alphabetical by name)
-        const allRoutines = await db.getAllAsync<{ id: string; name: string }>(
-          'SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY name ASC'
-        );
-
-        // Get the most recent workout that used one of these routines
-        const lastWorkout = await db.getFirstAsync<{ routine_id: string | null }>(
-          'SELECT routine_id FROM workouts WHERE routine_id IS NOT NULL ORDER BY date DESC, id DESC LIMIT 1'
-        );
-
-        // Find the next routine in rotation
-        let nextRoutineIndex = 0;
-
-        if (lastWorkout?.routine_id) {
-          const lastIndex = allRoutines.findIndex(r => r.id === lastWorkout.routine_id);
-          if (lastIndex !== -1) {
-            // Move to next routine, wrap around to 0 if at end
-            nextRoutineIndex = (lastIndex + 1) % allRoutines.length;
-          }
-        }
-
-        const nextRoutine = allRoutines[nextRoutineIndex];
-
-        if (nextRoutine) {
-          // Get exercise IDs for the next routine
-          const routineExercises = await db.getAllAsync<{ exercise_id: string; order_index: number }>(
-            'SELECT exercise_id, order_index FROM routine_exercises WHERE routine_id = ? ORDER BY order_index',
-            [nextRoutine.id]
-          );
-
-          const exerciseIds = routineExercises.map((row) => row.exercise_id);
-          
-          // Get estimated duration
-          const estimatedDuration = await getRoutineDurationEstimate(db, nextRoutine.id);
-
-          setNextWorkout({
-            id: nextRoutine.id,
-            name: nextRoutine.name,
-            exerciseIds: exerciseIds,
-            estimatedDuration,
-          });
-        } else {
-          setNextWorkout(null);
-        }
+        setNextWorkout(null);
       }
     } catch (error) {
       console.error('Error loading routines:', error);
@@ -136,6 +156,17 @@ export default function WorkoutsScreen() {
     } catch (error) {
       console.error('Failed to check for in-progress workout:', error);
       setInProgressWorkout(null);
+    }
+  }, []);
+
+  // Load selected track from AsyncStorage
+  const loadSelectedTrack = useCallback(async () => {
+    try {
+      const track = await AsyncStorage.getItem('SELECTED_TRACK');
+      setSelectedTrack(track);
+    } catch (error) {
+      console.error('Failed to load selected track:', error);
+      setSelectedTrack(null);
     }
   }, []);
 
@@ -175,8 +206,9 @@ export default function WorkoutsScreen() {
   useFocusEffect(
     useCallback(() => {
       checkForInProgressWorkout();
+      loadSelectedTrack();
       loadUserRoutines();
-    }, [checkForInProgressWorkout, loadUserRoutines])
+    }, [checkForInProgressWorkout, loadSelectedTrack, loadUserRoutines])
   );
 
   const handleStartRoutine = (routine: Routine) => {

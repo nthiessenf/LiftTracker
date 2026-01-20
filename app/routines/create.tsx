@@ -28,8 +28,8 @@ export default function CreateRoutineScreen() {
       await db.withTransactionAsync(async () => {
         // Step A: Insert the Routine
         await db.runAsync(
-          'INSERT INTO routines (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-          [routineId, template.name, now, now]
+          'INSERT INTO routines (id, name, created_at, updated_at, track) VALUES (?, ?, ?, ?, ?)',
+          [routineId, template.name, now, now, null]
         );
 
         // Step B: Loop through template's exercises and insert into routine_exercises
@@ -74,8 +74,8 @@ export default function CreateRoutineScreen() {
       await db.withTransactionAsync(async () => {
         // Insert the routine
         await db.runAsync(
-          'INSERT INTO routines (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-          [routineId, routineName.trim(), now, now]
+          'INSERT INTO routines (id, name, created_at, updated_at, track) VALUES (?, ?, ?, ?, ?)',
+          [routineId, routineName.trim(), now, now, null]
         );
 
         // Insert each exercise with order_index
