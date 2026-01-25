@@ -694,6 +694,7 @@ export default function SettingsScreen() {
                       await AsyncStorage.setItem('HAS_COMPLETED_ONBOARDING', 'true');
                       await AsyncStorage.setItem('SELECTED_TRACK', 'FULL_BODY');
                       await AsyncStorage.removeItem('IN_PROGRESS_WORKOUT');
+                      await AsyncStorage.removeItem('LAST_COMPLETED_RECOMMENDATION_DATE');
 
                       Alert.alert(
                         '✅ Demo Data Loaded!',
