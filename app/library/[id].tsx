@@ -1,9 +1,8 @@
 import { EXERCISES } from '@/data/exercises';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Card } from '@/components/ui';
 
 type PersonalRecord = {
@@ -15,15 +14,7 @@ export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
-  const navigation = useNavigation();
   const [personalRecord, setPersonalRecord] = useState<PersonalRecord | null>(null);
-
-  // Hide native header
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: false
-    });
-  }, [navigation]);
 
   // Find exercise from static data
   const exercise = EXERCISES.find((ex) => ex.id === id);

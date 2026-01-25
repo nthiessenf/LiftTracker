@@ -175,12 +175,18 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="history/[id]"
-        options={{
-          headerShown: false,
-        }}
-      />
-    </Stack>
+              <Stack.Screen
+                name="history/[id]"
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="library/[id]"
+                options={{
+                  headerShown: false,
+                }}
+              />
+            </Stack>
   );
 }
