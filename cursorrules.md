@@ -57,7 +57,8 @@ CREATE TABLE routines (
   name TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  is_temporary INTEGER DEFAULT 0
+  is_temporary INTEGER DEFAULT 0,
+  track TEXT                      -- "FULL_BODY", "PPL", "UPPER_LOWER", or NULL for user-created
 );
 
 -- Table: routine_exercises
@@ -98,6 +99,7 @@ CREATE TABLE sets (
 * All IDs are `TEXT` (not INTEGER) - typically timestamp-based strings
 * `exercise_id` is a string reference to `data/exercises.ts`, NOT a foreign key
 * `is_temporary` flag distinguishes user-created routines from auto-generated ones
+* `track` column links routines to their training track (NULL for user-created routines)
 * Migrations are handled in `data/database/db.ts` via `migrateDbIfNeeded()`
 
 ## 4. Operational Rules for AI Assistant
@@ -133,16 +135,17 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * **Screen 3 - Weekly Goal:** Number picker (1-7, default 3)
 * **Screen 4 - Confirmation:** Summary and "Start Training" button
 * Uses `HAS_COMPLETED_ONBOARDING` in AsyncStorage to prevent loops
+* **Saves `SELECTED_TRACK` to AsyncStorage** ("FULL_BODY", "PPL", "UPPER_LOWER", or "NONE" if skipped)
 * Calls `seedDatabaseWithTrack()` to populate routines based on user selection
-* Skip option allows users to start with empty routines
-* **Duplicate prevention:** `seedDatabaseWithTrack()` checks for existing routines before inserting
+* Skip option allows users to start with empty routines (freestyle mode)
+* **Duplicate prevention:** `seedDatabaseWithTrack()` checks for existing routines with matching track before inserting
 
 ### Dashboard (`app/(tabs)/index.tsx`)
 * Green "Goal Ring" tracks weekly workouts with streak counter
 * **Ring starts at 12 o'clock position** (rotation={0})
 * Weekly Progress dots show workout status for current week
 * Glass-morphism design with green gradient glow effect
-* Simple bridge CTA at bottom: "Ready to train? Start a workout →" (links to Start tab)
+* Simple bridge CTA at bottom: "Ready to train? Start a workout â†’" (links to Start tab)
 * **Note:** Recommendation card removed - now lives on Start tab
 * **Note:** Body heatmap feature planned for future
 
@@ -156,7 +159,7 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * **"Recommended for Today" card** (green) with:
   * Routine name, estimated duration, "last done X days ago" context
   * Green "Start" button (only primary CTA when no in-progress workout)
-  * **Rotation logic:** Cycles through routines alphabetically (A→B→A→B), not longest-unused
+  * **Rotation logic:** Cycles through routines alphabetically (Aâ†’Bâ†’Aâ†’B), not longest-unused
 * **Section structure with clear visual hierarchy:**
   * "TODAY'S RECOMMENDATION" label (green, uppercase)
   * "or" divider (lines with centered text)
@@ -164,6 +167,18 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * **"Start Empty Workout" card** with subtitle "Add exercises as you go", chevron (no button)
 * **Routine cards** with chevrons (no Start buttons), sorted by last used then alphabetically
 * **Recommended routine hidden from list** (no duplication)
+* **Track-based recommendations (Updated Jan 20, 2026):**
+  * Reads `SELECTED_TRACK` from AsyncStorage to determine which routines to recommend
+  * Only cycles through routines belonging to the user's selected track
+  * FULL_BODY: Full Body A → Full Body B → Full Body A...
+  * PPL: Push Day → Pull Day → Legs Day → Push Day...
+  * UPPER_LOWER: Upper A → Lower A → Upper A...
+* **Freestyle mode:** Users who skipped track selection (`SELECTED_TRACK = "NONE"`) see no recommendation card
+* **Celebration state:** After completing the recommended workout:
+  * Recommendation card replaced with "You crushed it!" celebration card
+  * Shows until the next calendar day (resets at midnight)
+  * Uses `LAST_COMPLETED_RECOMMENDATION_DATE` in AsyncStorage (YYYY-MM-DD format)
+* **User-created routines** (track = NULL) appear in "YOUR ROUTINES" but never in recommendations
 
 ### Active Session (`app/session/active.tsx`)
 * Smart Pre-fill: Queries SQLite for the last session of that specific exercise to fill weight/reps
@@ -209,57 +224,61 @@ Always respect the "Source of Truth." Do not hardcode new routines in JSON; inse
 * Includes `routine_exercises` table in exports
 
 ### Settings (`app/(tabs)/settings.tsx`)
-* Contains "Reset Onboarding" button for testing (keep for now, consider hiding before App Store)
+* **"Reset Onboarding" button** for testing - now also clears:
+  * All non-temporary routines from database
+  * `SELECTED_TRACK` from AsyncStorage
+  * `WEEKLY_GOAL` from AsyncStorage
+  * `HAS_COMPLETED_ONBOARDING` from AsyncStorage
 * Backup/restore functionality
 
 ## 6. Key File Structure
 
 ```
 app/
-├── (tabs)/
-│   ├── index.tsx          # Dashboard / Progress (reflection-focused)
-│   ├── workouts.tsx       # Start Tab - begin workouts here
-│   ├── _layout.tsx        # Tab configuration (renamed Workout→Start)
-│   ├── library.tsx        # Exercise Library
-│   ├── history.tsx        # Past Workouts List (Calendar View)
-│   └── settings.tsx       # Settings & Backup
-├── history/
-│   └── [id].tsx           # Workout Detail / Edit View
-├── library/
-│   └── [id].tsx           # Exercise Detail View
-├── routines/
-│   ├── create.tsx         # Routine Builder
-│   ├── [id].tsx           # Routine Editor
-│   └── detail/
-│       └── [id].tsx       # Routine Preview
-├── session/
-│   ├── active.tsx         # Active Workout Logger
-│   └── timer.tsx          # Full-screen rest timer with countdown ring
-├── onboarding.tsx         # 4-screen onboarding flow
-└── _layout.tsx            # Root layout with SQLiteProvider
+â”œâ”€â”€ (tabs)/
+â”‚   â”œâ”€â”€ index.tsx          # Dashboard / Progress (reflection-focused)
+â”‚   â”œâ”€â”€ workouts.tsx       # Start Tab - begin workouts here
+â”‚   â”œâ”€â”€ _layout.tsx        # Tab configuration (renamed Workoutâ†’Start)
+â”‚   â”œâ”€â”€ library.tsx        # Exercise Library
+â”‚   â”œâ”€â”€ history.tsx        # Past Workouts List (Calendar View)
+â”‚   â””â”€â”€ settings.tsx       # Settings & Backup
+â”œâ”€â”€ history/
+â”‚   â””â”€â”€ [id].tsx           # Workout Detail / Edit View
+â”œâ”€â”€ library/
+â”‚   â””â”€â”€ [id].tsx           # Exercise Detail View
+â”œâ”€â”€ routines/
+â”‚   â”œâ”€â”€ create.tsx         # Routine Builder
+â”‚   â”œâ”€â”€ [id].tsx           # Routine Editor
+â”‚   â””â”€â”€ detail/
+â”‚       â””â”€â”€ [id].tsx       # Routine Preview
+â”œâ”€â”€ session/
+â”‚   â”œâ”€â”€ active.tsx         # Active Workout Logger
+â”‚   â””â”€â”€ timer.tsx          # Full-screen rest timer with countdown ring
+â”œâ”€â”€ onboarding.tsx         # 4-screen onboarding flow
+â””â”€â”€ _layout.tsx            # Root layout with SQLiteProvider
 
 components/
-├── ui/
-│   ├── Card.tsx           # Glass-morphism card component
-│   ├── Button.tsx         # Styled button component
-│   └── index.ts           # Barrel exports
-└── WeeklyGoalRing.tsx     # Circular progress indicator
+â”œâ”€â”€ ui/
+â”‚   â”œâ”€â”€ Card.tsx           # Glass-morphism card component
+â”‚   â”œâ”€â”€ Button.tsx         # Styled button component
+â”‚   â””â”€â”€ index.ts           # Barrel exports
+â””â”€â”€ WeeklyGoalRing.tsx     # Circular progress indicator
 
 data/
-├── database/
-│   └── db.ts              # SQLite Initialization, Migrations & Helpers
-├── exercises.ts           # STATIC Source of Truth for Exercises
-├── templates.ts           # STATIC Source for "Quick Add" gallery
-├── tracks.ts              # Training track definitions for onboarding
-└── services/
-    └── backupService.ts   # Export/Import functionality
+â”œâ”€â”€ database/
+â”‚   â””â”€â”€ db.ts              # SQLite Initialization, Migrations & Helpers
+â”œâ”€â”€ exercises.ts           # STATIC Source of Truth for Exercises
+â”œâ”€â”€ templates.ts           # STATIC Source for "Quick Add" gallery
+â”œâ”€â”€ tracks.ts              # Training track definitions for onboarding
+â””â”€â”€ services/
+    â””â”€â”€ backupService.ts   # Export/Import functionality
 ```
 
 ## 7. Important Functions & Helpers
 
 ### Database Helpers (`data/database/db.ts`)
 * `migrateDbIfNeeded()` - Handles schema migrations
-* `seedDatabaseWithTrack()` - Populates routines from a training track (used in onboarding). **Now checks for existing routines before seeding.**
+* `seedDatabaseWithTrack()` - Populates routines from a training track (used in onboarding). **Checks for existing routines with matching track before seeding. Sets the `track` column on created routines.**
 * `getLastTrainedDateByMuscleGroup()` - Returns muscle recovery dates
 * `getRoutineDurationEstimate()` - Calculates estimated workout time
 * `generateSmartRoutine()` - Creates routine based on muscle freshness
@@ -282,6 +301,8 @@ data/
 * `HAS_COMPLETED_ONBOARDING` - Boolean flag for onboarding completion
 * `WEEKLY_GOAL` - Number (1-7) for weekly workout target
 * `IN_PROGRESS_WORKOUT` - JSON object with workout state for resume functionality
+* `SELECTED_TRACK` - User's chosen training track ("FULL_BODY", "PPL", "UPPER_LOWER", or "NONE" for freestyle)
+* `LAST_COMPLETED_RECOMMENDATION_DATE` - Date string (YYYY-MM-DD) tracking when user completed the daily recommendation
 
 ## 8. Design Principles
 
@@ -306,7 +327,7 @@ data/
 
 ### CTA Hierarchy (IMPORTANT)
 * **Primary CTA (colored button):** Only ONE per screen, for the main action
-* **Secondary actions (chevrons →):** For alternative paths, entire card is tappable
+* **Secondary actions (chevrons â†’):** For alternative paths, entire card is tappable
 * This reduces decision fatigue and creates clear visual hierarchy
 
 ### Spacing
@@ -368,11 +389,14 @@ WHERE r.is_temporary = 0
 ORDER BY last_used_date DESC NULLS LAST, r.name ASC
 ```
 
-### Recommendation Rotation (Alphabetical Cycling)
+### Recommendation Rotation (Track-Based Cycling)
 ```sql
--- Get routines ordered alphabetically for consistent rotation
-SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY name ASC
--- Then find last workout's routine and pick the next one in the list (wrapping around)
+-- Get routines for the user's selected track, ordered alphabetically
+SELECT id, name FROM routines 
+WHERE track = ? AND is_temporary = 0 
+ORDER BY name ASC
+-- Then find last workout's routine from that track and pick the next one (wrapping around)
+-- If SELECTED_TRACK is "NONE", no recommendation is shown (freestyle mode)
 ```
 
 ## 10. Troubleshooting Notes
@@ -387,6 +411,9 @@ SELECT id, name FROM routines WHERE is_temporary = 0 ORDER BY name ASC
 * **LayoutAnimation:** Doesn't work reliably in ScrollView/FlatList - use react-native-reanimated for list animations
 * **Expo Go Connectivity:** If connection drops, use `npx expo start --tunnel --clear` for more reliable connection
 * **Calendar Not Updating:** After deleting workouts, ensure a small delay before router.back() so database commits
+* **No Recommendations Showing:** Check `SELECTED_TRACK` in AsyncStorage; if "NONE", user is in freestyle mode. Also verify routines have the `track` column populated.
+* **Celebration Card Stuck:** Check `LAST_COMPLETED_RECOMMENDATION_DATE` in AsyncStorage; clear it to reset
+* **Track Routines Missing:** After resetting onboarding, existing routines may have NULL track. Use "Reset Onboarding" in Settings which now clears old routines before re-seeding.
 
 ## 11. Known Issues & Planned Work
 

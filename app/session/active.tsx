@@ -523,7 +523,7 @@ export default function ActiveSessionScreen() {
   const renderSetRow = (exerciseId: string, set: Set, index: number, totalSets: number) => {
     return (
       <View
-        key={set.id}
+        key={`${exerciseId}-${set.id}-${index}`}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -613,13 +613,13 @@ export default function ActiveSessionScreen() {
     );
   };
 
-  const renderSessionExercise = (exercise: SessionExercise) => {
+  const renderSessionExercise = (exercise: SessionExercise, index: number) => {
     const exerciseData = EXERCISES.find((ex) => ex.id === exercise.exerciseId);
     const hasAlternatives = exerciseData?.alternatives && exerciseData.alternatives.length > 0;
 
     return (
       <Card
-        key={exercise.exerciseId}
+        key={`${exercise.exerciseId}-${sessionExercises.indexOf(exercise)}`}
         variant="default"
         style={{ marginHorizontal: 0, marginBottom: 16, padding: 0 }}>
         <View
@@ -728,7 +728,7 @@ export default function ActiveSessionScreen() {
           </View>
         ) : (
           <>
-            {sessionExercises.map((exercise) => renderSessionExercise(exercise))}
+            {sessionExercises.map((exercise, index) => renderSessionExercise(exercise, index))}
             <Card
               variant="default"
               onPress={handleAddExercise}

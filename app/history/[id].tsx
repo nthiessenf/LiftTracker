@@ -432,35 +432,34 @@ export default function WorkoutDetailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={100}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ backgroundColor: '#121212', flex: 1 }}>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingTop: 60,
-              paddingHorizontal: 24,
-              paddingBottom: 48,
-            }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
-            {/* Custom Header Row */}
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 24,
-            }}>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 24, color: '#10b981', marginRight: 8 }}>←</Text>
-                <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleEditMode}>
-                <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>
-                  {isEditing ? 'Save' : 'Edit'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <ScrollView
+          style={{ flex: 1, backgroundColor: '#121212' }}
+          contentContainerStyle={{
+            paddingTop: 60,
+            paddingHorizontal: 24,
+            paddingBottom: 120,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          {/* Custom Header Row */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, color: '#10b981', marginRight: 8 }}>←</Text>
+              <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleEditMode}>
+              <Text style={{ fontSize: 16, color: '#10b981', fontWeight: '500' }}>
+                {isEditing ? 'Save' : 'Edit'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
             {/* Workout Summary */}
             {isEditing ? (
@@ -684,9 +683,10 @@ export default function WorkoutDetailScreen() {
               </Pressable>
             )}
           </ScrollView>
+        </TouchableWithoutFeedback>
 
-          {/* Exercise Picker Modal */}
-          <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
+        {/* Exercise Picker Modal */}
+        <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
             <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' }}>
               <View style={{ backgroundColor: '#121212', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
                 <View
@@ -713,8 +713,6 @@ export default function WorkoutDetailScreen() {
               </View>
             </View>
           </Modal>
-        </View>
-      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
