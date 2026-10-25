@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# secrets / local data (security hardening)
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
